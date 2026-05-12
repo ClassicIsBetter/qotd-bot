@@ -30,27 +30,21 @@ const OWNER_ID = "1285513478315966506";
 // SIMPLE COMMANDS
 // =====================
 const simpleCommands = {
-  ping: {
-    message: "Pong!",
-    description: "ceck if the bot is alive"
-  },
-
-  cat: {
-    message: "🐈",
-    description: "cat"
-  },
-
-  silly: {
-    message: "silly sword fighting",
-    description: "silly command"
+  ping: { message: "Pong!", description: "Replies with pong" },
+  cat: { message: "🐈 meow", description: "cat command" },
+  silly: { message: "silly sword fighting moment", description: "silly" },
+  rules: {
+    message: `1. Be nice
+2. No spam
+3. no eating drywall`,
+    description: "rules"
   }
-
 };
 
 // =====================
 // STATE
 // =====================
-let qotdNumber = 20;
+let qotdNumber = 19;
 
 console.log("Bot starting...");
 
@@ -58,14 +52,11 @@ console.log("Bot starting...");
 // CLIENT
 // =====================
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages
-  ],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
 });
 
 // =====================
-// REGISTER COMMANDS
+// COMMANDS
 // =====================
 const commands = [
   ...Object.keys(simpleCommands).map(cmd =>
@@ -120,7 +111,7 @@ function extractEmoji(line) {
 }
 
 // =====================
-// QOTD SENDER
+// SEND QOTD
 // =====================
 async function sendQOTD() {
   try {
@@ -163,7 +154,7 @@ async function sendQOTD() {
 }
 
 // =====================
-// SCHEDULE (ACST 4:30 PM)
+// SCHEDULE (ACST 4:30)
 // =====================
 function scheduleQOTD(hour, minute) {
   setInterval(() => {
@@ -198,7 +189,7 @@ client.once('ready', () => {
 client.on('interactionCreate', async (interaction) => {
 
   // =====================
-  // MODAL
+  // MODAL SUBMIT
   // =====================
   if (interaction.isModalSubmit()) {
 
@@ -219,31 +210,28 @@ ${emoji2} | ${text2}`
       );
 
       // =====================
-      // QUEUE SYSTEM
+      // QUEUE POSITION
       // =====================
       const messages = await inputChannel.messages.fetch({ limit: 100 });
 
-      const sorted = messages.sort(
-        (a, b) => a.createdTimestamp - b.createdTimestamp
-      );
+      const sorted = [...messages.values()]
+        .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
       const position =
-        Array.from(sorted.keys()).indexOf(sentMessage.id) + 1;
+        sorted.findIndex(m => m.id === sentMessage.id) + 1;
 
-      const total = sorted.size;
+      const total = sorted.length;
 
       // =====================
-      // DISCORD TIME FORMAT
+      // FIXED TIMEZONE LOGIC (NO BUGGY STRING DATES)
       // =====================
+      const ADELAIDE_OFFSET = 9.5 * 60 * 60 * 1000;
+
       const now = new Date();
 
-      const adelaideNow = new Date(
-        now.toLocaleString("en-US", {
-          timeZone: "Australia/Adelaide"
-        })
-      );
+      const adelaideNow = new Date(now.getTime() + ADELAIDE_OFFSET);
 
-      const sendDate = new Date(adelaideNow);
+      let sendDate = new Date(adelaideNow);
       sendDate.setHours(16, 30, 0, 0);
 
       if (adelaideNow > sendDate) {
@@ -252,7 +240,9 @@ ${emoji2} | ${text2}`
 
       sendDate.setDate(sendDate.getDate() + (position - 1));
 
-      const unix = Math.floor(sendDate.getTime() / 1000);
+      const unix = Math.floor(
+        (sendDate.getTime() - ADELAIDE_OFFSET) / 1000
+      );
 
       return interaction.reply({
         content:
@@ -272,14 +262,10 @@ It is ${position}/${total} in the queue.`,
   // =====================
   if (!interaction.isChatInputCommand()) return;
 
-  // simple commands
   if (simpleCommands[interaction.commandName]) {
-    return interaction.reply(
-      simpleCommands[interaction.commandName].message
-    );
+    return interaction.reply(simpleCommands[interaction.commandName].message);
   }
 
-  // suggest qotd modal
   if (interaction.commandName === 'suggestqotd') {
 
     const modal = new ModalBuilder()
@@ -322,7 +308,6 @@ It is ${position}/${total} in the queue.`,
     return interaction.showModal(modal);
   }
 
-  // owner-only send
   if (interaction.commandName === 'sendqotd') {
 
     if (interaction.user.id !== OWNER_ID) {
