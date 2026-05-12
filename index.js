@@ -8,11 +8,12 @@ const {
 } = require('discord.js');
 
 // 🔑 CONFIG
-TOKEN=your_bot_token
-CLIENT_ID=your_client_id
-GUILD_ID=your_server_id
-INPUT_CHANNEL_ID=your_input_channel
-OUTPUT_CHANNEL_ID=your_output_channel
+const TOKEN = process.env.TOKEN;
+const CLIENT_ID = process.env.CLIENT_ID;
+const GUILD_ID = process.env.GUILD_ID;
+
+const INPUT_CHANNEL_ID = process.env.INPUT_CHANNEL_ID;
+const OUTPUT_CHANNEL_ID = process.env.OUTPUT_CHANNEL_ID;
 
 let qotdNumber = 19;
 
