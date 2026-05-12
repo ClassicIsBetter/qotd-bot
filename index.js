@@ -18,6 +18,19 @@ const INPUT_CHANNEL_ID = process.env.INPUT_CHANNEL_ID;
 const OUTPUT_CHANNEL_ID = process.env.OUTPUT_CHANNEL_ID;
 
 // =====================
+// SIMPLE COMMANDS
+// =====================
+const simpleCommands = {
+  ping: "Pong!",
+
+  cat: "🐈",
+
+  silly: "silly sword fighting",
+
+  about: "made by <@1285513478315966506> for sending qotds and testing stuff"
+};
+
+// =====================
 // STATE
 // =====================
 let qotdNumber = 19;
@@ -35,9 +48,18 @@ const client = new Client({
 });
 
 // =====================
-// SLASH COMMAND
+// COMMANDS
 // =====================
 const commands = [
+  // auto simple commands
+  ...Object.keys(simpleCommands).map(cmd =>
+    new SlashCommandBuilder()
+      .setName(cmd)
+      .setDescription(`Simple command: ${cmd}`)
+      .toJSON()
+  ),
+
+  // qotd command
   new SlashCommandBuilder()
     .setName('sendqotd')
     .setDescription('Manually send QOTD')
@@ -66,7 +88,10 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
 // =====================
 async function getOldestMessage(channel) {
   const messages = await channel.messages.fetch({ limit: 100 });
-  return messages.sort((a, b) => a.createdTimestamp - b.createdTimestamp).first();
+
+  return messages
+    .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+    .first();
 }
 
 // =====================
@@ -74,11 +99,12 @@ async function getOldestMessage(channel) {
 // =====================
 function extractEmoji(line) {
   if (!line) return null;
+
   return line.split("|")[0].trim();
 }
 
 // =====================
-// QOTD FUNCTION
+// SEND QOTD
 // =====================
 async function sendQOTD() {
   try {
@@ -86,16 +112,22 @@ async function sendQOTD() {
     const outputChannel = await client.channels.fetch(OUTPUT_CHANNEL_ID);
 
     const oldest = await getOldestMessage(inputChannel);
-    if (!oldest) return console.log("No messages found");
+
+    if (!oldest) {
+      console.log("No QOTDs found.");
+      return;
+    }
 
     const lines = oldest.content
       .split("\n")
       .map(l => l.trim())
       .filter(Boolean);
 
+    // reactions from last 2 lines
     const reaction1 = extractEmoji(lines.at(-2));
     const reaction2 = extractEmoji(lines.at(-1));
 
+    // FULL message INCLUDING emoji lines
     const fullMessage = lines.join("\n");
 
     const embed = new EmbedBuilder()
@@ -103,17 +135,26 @@ async function sendQOTD() {
       .setDescription(fullMessage)
       .setColor(0xffcc00);
 
-    const sent = await outputChannel.send({ embeds: [embed] });
+    const sent = await outputChannel.send({
+      embeds: [embed]
+    });
 
     // reactions
-    if (reaction1) await sent.react(reaction1);
-    if (reaction2) await sent.react(reaction2);
+    if (reaction1) {
+      await sent.react(reaction1).catch(() => {});
+    }
 
-    // thread (safe)
+    if (reaction2) {
+      await sent.react(reaction2).catch(() => {});
+    }
+
+    // thread
     await sent.startThread({
       name: `QOTD #${qotdNumber} discussion`,
       autoArchiveDuration: 1440
-    }).catch(() => {});
+    }).catch(err => {
+      console.log("Thread failed:", err.message);
+    });
 
     // delete used message
     await oldest.delete().catch(() => {});
@@ -121,28 +162,33 @@ async function sendQOTD() {
     console.log(`Sent QOTD #${qotdNumber}`);
 
     qotdNumber++;
+
   } catch (err) {
     console.error("QOTD error:", err);
   }
 }
 
 // =====================
-// SCHEDULE (ACST SAFE)
+// SCHEDULE SYSTEM
 // =====================
 function scheduleQOTD(hour, minute) {
   setInterval(() => {
     const now = new Date();
 
-    const adelaide = new Date(
-      now.toLocaleString("en-US", { timeZone: "Australia/Adelaide" })
+    // Adelaide timezone
+    const adelaideTime = new Date(
+      now.toLocaleString("en-US", {
+        timeZone: "Australia/Adelaide"
+      })
     );
 
     if (
-      adelaide.getHours() === hour &&
-      adelaide.getMinutes() === minute
+      adelaideTime.getHours() === hour &&
+      adelaideTime.getMinutes() === minute
     ) {
       sendQOTD();
     }
+
   }, 60 * 1000);
 }
 
@@ -152,7 +198,7 @@ function scheduleQOTD(hour, minute) {
 client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}`);
 
-  // 4:30 PM ACST (change to 4 if AM)
+  // 4:30 PM ACST
   scheduleQOTD(16, 30);
 });
 
@@ -162,6 +208,14 @@ client.once('ready', () => {
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
+  // simple commands
+  if (simpleCommands[interaction.commandName]) {
+    return interaction.reply(
+      simpleCommands[interaction.commandName]
+    );
+  }
+
+  // qotd command
   if (interaction.commandName === 'sendqotd') {
     await interaction.reply("Sending QOTD...");
     await sendQOTD();
