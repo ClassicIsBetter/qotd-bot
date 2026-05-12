@@ -12,7 +12,7 @@ const {
 } = require('discord.js');
 
 // =====================
-// ENV VARIABLES
+// ENV
 // =====================
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
@@ -32,25 +32,19 @@ const OWNER_ID = "1285513478315966506";
 const simpleCommands = {
   ping: {
     message: "Pong!",
-    description: "Replies with pong"
+    description: "ceck if the bot is alive"
   },
 
   cat: {
-    message: "🐈 meow",
-    description: "very important cat command"
+    message: "🐈",
+    description: "cat"
   },
 
   silly: {
-    message: "silly sword fighting moment",
+    message: "silly sword fighting",
     description: "silly command"
-  },
-
-  rules: {
-    message: `1. Be nice
-2. No spam
-3. no eating drywall`,
-    description: "Shows the server rules"
   }
+
 };
 
 // =====================
@@ -71,10 +65,9 @@ const client = new Client({
 });
 
 // =====================
-// COMMANDS
+// REGISTER COMMANDS
 // =====================
 const commands = [
-  // simple commands
   ...Object.keys(simpleCommands).map(cmd =>
     new SlashCommandBuilder()
       .setName(cmd)
@@ -82,13 +75,11 @@ const commands = [
       .toJSON()
   ),
 
-  // send qotd
   new SlashCommandBuilder()
     .setName('sendqotd')
     .setDescription('Manually send QOTD')
     .toJSON(),
 
-  // suggest qotd
   new SlashCommandBuilder()
     .setName('suggestqotd')
     .setDescription('Suggest a QOTD')
@@ -113,7 +104,7 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
 })();
 
 // =====================
-// FETCH OLDEST MESSAGE
+// HELPERS
 // =====================
 async function getOldestMessage(channel) {
   const messages = await channel.messages.fetch({ limit: 100 });
@@ -123,17 +114,13 @@ async function getOldestMessage(channel) {
     .first();
 }
 
-// =====================
-// SAFE EMOJI PARSER
-// =====================
 function extractEmoji(line) {
   if (!line) return null;
-
   return line.split("|")[0].trim();
 }
 
 // =====================
-// SEND QOTD
+// QOTD SENDER
 // =====================
 async function sendQOTD() {
   try {
@@ -141,54 +128,32 @@ async function sendQOTD() {
     const outputChannel = await client.channels.fetch(OUTPUT_CHANNEL_ID);
 
     const oldest = await getOldestMessage(inputChannel);
-
-    if (!oldest) {
-      console.log("No QOTDs found.");
-      return;
-    }
+    if (!oldest) return;
 
     const lines = oldest.content
       .split("\n")
       .map(l => l.trim())
       .filter(Boolean);
 
-    // reactions from last 2 lines
     const reaction1 = extractEmoji(lines.at(-2));
     const reaction2 = extractEmoji(lines.at(-1));
 
-    // FULL message INCLUDING emoji lines
-    const fullMessage = lines.join("\n");
-
     const embed = new EmbedBuilder()
       .setTitle(`QOTD #${qotdNumber}`)
-      .setDescription(fullMessage)
+      .setDescription(lines.join("\n"))
       .setColor(0xffcc00);
 
-    const sent = await outputChannel.send({
-      embeds: [embed]
-    });
+    const sent = await outputChannel.send({ embeds: [embed] });
 
-    // reactions
-    if (reaction1) {
-      await sent.react(reaction1).catch(() => {});
-    }
+    if (reaction1) await sent.react(reaction1).catch(() => {});
+    if (reaction2) await sent.react(reaction2).catch(() => {});
 
-    if (reaction2) {
-      await sent.react(reaction2).catch(() => {});
-    }
-
-    // thread
     await sent.startThread({
       name: `QOTD #${qotdNumber} discussion`,
       autoArchiveDuration: 1440
-    }).catch(err => {
-      console.log("Thread failed:", err.message);
-    });
+    }).catch(() => {});
 
-    // delete used message
     await oldest.delete().catch(() => {});
-
-    console.log(`Sent QOTD #${qotdNumber}`);
 
     qotdNumber++;
 
@@ -198,27 +163,25 @@ async function sendQOTD() {
 }
 
 // =====================
-// SCHEDULE SYSTEM
+// SCHEDULE (ACST 4:30 PM)
 // =====================
 function scheduleQOTD(hour, minute) {
   setInterval(() => {
     const now = new Date();
 
-    // Adelaide timezone
-    const adelaideTime = new Date(
+    const adelaide = new Date(
       now.toLocaleString("en-US", {
         timeZone: "Australia/Adelaide"
       })
     );
 
     if (
-      adelaideTime.getHours() === hour &&
-      adelaideTime.getMinutes() === minute
+      adelaide.getHours() === hour &&
+      adelaide.getMinutes() === minute
     ) {
       sendQOTD();
     }
-
-  }, 60 * 1000);
+  }, 60000);
 }
 
 // =====================
@@ -226,49 +189,77 @@ function scheduleQOTD(hour, minute) {
 // =====================
 client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}`);
-
-  // 4:30 PM ACST
   scheduleQOTD(16, 30);
 });
 
 // =====================
-// COMMAND HANDLER
+// INTERACTIONS
 // =====================
 client.on('interactionCreate', async (interaction) => {
 
   // =====================
-  // MODAL SUBMIT
+  // MODAL
   // =====================
   if (interaction.isModalSubmit()) {
 
     if (interaction.customId === 'qotdModal') {
 
-      const question =
-        interaction.fields.getTextInputValue('question');
+      const question = interaction.fields.getTextInputValue('question');
+      const emoji1 = interaction.fields.getTextInputValue('emoji1');
+      const text1 = interaction.fields.getTextInputValue('text1');
+      const emoji2 = interaction.fields.getTextInputValue('emoji2');
+      const text2 = interaction.fields.getTextInputValue('text2');
 
-      const emoji1 =
-        interaction.fields.getTextInputValue('emoji1');
+      const inputChannel = await client.channels.fetch(INPUT_CHANNEL_ID);
 
-      const text1 =
-        interaction.fields.getTextInputValue('text1');
-
-      const emoji2 =
-        interaction.fields.getTextInputValue('emoji2');
-
-      const text2 =
-        interaction.fields.getTextInputValue('text2');
-
-      const inputChannel =
-        await client.channels.fetch(INPUT_CHANNEL_ID);
-
-      await inputChannel.send(
+      const sentMessage = await inputChannel.send(
 `"${question}" suggested by <@${interaction.user.id}>
 ${emoji1} | ${text1}
 ${emoji2} | ${text2}`
       );
 
-      await interaction.reply({
-        content: "QOTD suggested!",
+      // =====================
+      // QUEUE SYSTEM
+      // =====================
+      const messages = await inputChannel.messages.fetch({ limit: 100 });
+
+      const sorted = messages.sort(
+        (a, b) => a.createdTimestamp - b.createdTimestamp
+      );
+
+      const position =
+        Array.from(sorted.keys()).indexOf(sentMessage.id) + 1;
+
+      const total = sorted.size;
+
+      // =====================
+      // DISCORD TIME FORMAT
+      // =====================
+      const now = new Date();
+
+      const adelaideNow = new Date(
+        now.toLocaleString("en-US", {
+          timeZone: "Australia/Adelaide"
+        })
+      );
+
+      const sendDate = new Date(adelaideNow);
+      sendDate.setHours(16, 30, 0, 0);
+
+      if (adelaideNow > sendDate) {
+        sendDate.setDate(sendDate.getDate() + 1);
+      }
+
+      sendDate.setDate(sendDate.getDate() + (position - 1));
+
+      const unix = Math.floor(sendDate.getTime() / 1000);
+
+      return interaction.reply({
+        content:
+`QOTD suggested!
+
+Your QOTD will be sent <t:${unix}:R>
+It is ${position}/${total} in the queue.`,
         ephemeral: true
       });
     }
@@ -288,60 +279,55 @@ ${emoji2} | ${text2}`
     );
   }
 
-  // suggest qotd
+  // suggest qotd modal
   if (interaction.commandName === 'suggestqotd') {
 
     const modal = new ModalBuilder()
       .setCustomId('qotdModal')
       .setTitle('Suggest a QOTD');
 
-    const questionInput = new TextInputBuilder()
+    const question = new TextInputBuilder()
       .setCustomId('question')
-      .setLabel('QOTD Question')
-      .setStyle(TextInputStyle.Paragraph)
-      .setRequired(true);
+      .setLabel('Question')
+      .setStyle(TextInputStyle.Paragraph);
 
-    const emoji1Input = new TextInputBuilder()
+    const emoji1 = new TextInputBuilder()
       .setCustomId('emoji1')
       .setLabel('Emoji 1')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true);
+      .setStyle(TextInputStyle.Short);
 
-    const text1Input = new TextInputBuilder()
+    const text1 = new TextInputBuilder()
       .setCustomId('text1')
-      .setLabel('Text for Emoji 1')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true);
+      .setLabel('Text 1')
+      .setStyle(TextInputStyle.Short);
 
-    const emoji2Input = new TextInputBuilder()
+    const emoji2 = new TextInputBuilder()
       .setCustomId('emoji2')
       .setLabel('Emoji 2')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true);
+      .setStyle(TextInputStyle.Short);
 
-    const text2Input = new TextInputBuilder()
+    const text2 = new TextInputBuilder()
       .setCustomId('text2')
-      .setLabel('Text for Emoji 2')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true);
+      .setLabel('Text 2')
+      .setStyle(TextInputStyle.Short);
 
     modal.addComponents(
-      new ActionRowBuilder().addComponents(questionInput),
-      new ActionRowBuilder().addComponents(emoji1Input),
-      new ActionRowBuilder().addComponents(text1Input),
-      new ActionRowBuilder().addComponents(emoji2Input),
-      new ActionRowBuilder().addComponents(text2Input)
+      new ActionRowBuilder().addComponents(question),
+      new ActionRowBuilder().addComponents(emoji1),
+      new ActionRowBuilder().addComponents(text1),
+      new ActionRowBuilder().addComponents(emoji2),
+      new ActionRowBuilder().addComponents(text2)
     );
 
-    await interaction.showModal(modal);
+    return interaction.showModal(modal);
   }
 
-  // owner-only qotd command
+  // owner-only send
   if (interaction.commandName === 'sendqotd') {
 
     if (interaction.user.id !== OWNER_ID) {
       return interaction.reply({
-        content: "You can't use this command.",
+        content: "No permission.",
         ephemeral: true
       });
     }
