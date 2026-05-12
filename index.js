@@ -8,12 +8,11 @@ const {
 } = require('discord.js');
 
 // 🔑 CONFIG
-const TOKEN = "MTUwMzY5ODQ2MDIwMzk0NjA3Ng.GI2uIW.MERwa52Z-SAzPsuxmJe8a7D_TOGzCLhmoCp-4U";
-const CLIENT_ID = "1503698460203946076";
-const GUILD_ID = "1466331720730153052";
-
-const INPUT_CHANNEL_ID = "1498970415979040859";
-const OUTPUT_CHANNEL_ID = "1473922768834789515";
+TOKEN=your_bot_token
+CLIENT_ID=your_client_id
+GUILD_ID=your_server_id
+INPUT_CHANNEL_ID=your_input_channel
+OUTPUT_CHANNEL_ID=your_output_channel
 
 let qotdNumber = 19;
 
