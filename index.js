@@ -78,7 +78,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('qotdqueue')
-    .setDescription('View QOTD queue')
+    .setDescription('View your QOTD queue items')
     .toJSON()
 ];
 
@@ -111,7 +111,7 @@ async function getOldestMessage(channel) {
 }
 
 // =====================
-// EXTRACT EMOJIS
+// EMOJI EXTRACT
 // =====================
 function extractEmoji(line) {
   if (!line) return null;
@@ -137,14 +137,9 @@ async function sendQOTD() {
     const reaction1 = extractEmoji(lines.at(-2));
     const reaction2 = extractEmoji(lines.at(-1));
 
-    const wasPinged = oldest.content.includes("<@");
-
     const embed = new EmbedBuilder()
       .setTitle(`QOTD #${qotdNumber}`)
-      .setDescription(
-        oldest.content +
-        (wasPinged ? "\n📣 ping included in suggestion" : "")
-      )
+      .setDescription(oldest.content)
       .setColor(0xffcc00);
 
     const sent = await outputChannel.send({ embeds: [embed] });
@@ -202,7 +197,7 @@ client.once('ready', () => {
 client.on('interactionCreate', async (interaction) => {
 
   // =====================
-  // MODAL SUBMIT
+  // MODAL
   // =====================
   if (interaction.isModalSubmit()) {
 
@@ -216,52 +211,14 @@ client.on('interactionCreate', async (interaction) => {
 
       const inputChannel = await client.channels.fetch(INPUT_CHANNEL_ID);
 
-      const sentMessage = await inputChannel.send(
+      await inputChannel.send(
 `"${question}" suggested by <@${interaction.user.id}>
 ${emoji1} | ${text1}
 ${emoji2} | ${text2}`
       );
 
-      // =====================
-      // QUEUE POSITION
-      // =====================
-      const messages = await inputChannel.messages.fetch({ limit: 100 });
-
-      const sorted = [...messages.values()]
-        .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-
-      const position =
-        sorted.findIndex(m => m.id === sentMessage.id) + 1;
-
-      const total = sorted.length;
-
-      // =====================
-      // TIME CALC (ACST SAFE)
-      // =====================
-      const ADELAIDE_OFFSET = 9.5 * 60 * 60 * 1000;
-
-      const now = new Date();
-      const adelaideNow = new Date(now.getTime() + ADELAIDE_OFFSET);
-
-      let sendDate = new Date(adelaideNow);
-      sendDate.setHours(16, 30, 0, 0);
-
-      if (adelaideNow > sendDate) {
-        sendDate.setDate(sendDate.getDate() + 1);
-      }
-
-      sendDate.setDate(sendDate.getDate() + (position - 1));
-
-      const unix = Math.floor(
-        (sendDate.getTime() - ADELAIDE_OFFSET) / 1000
-      );
-
       return interaction.reply({
-        content:
-`QOTD suggested!
-
-Your QOTD will be sent <t:${unix}:R>
-It is ${position}/${total} in the queue.`,
+        content: "QOTD submitted!",
         ephemeral: true
       });
     }
@@ -278,7 +235,9 @@ It is ${position}/${total} in the queue.`,
     return interaction.reply(simpleCommands[interaction.commandName].message);
   }
 
-  // suggest modal
+  // =====================
+  // SUGGEST MODAL
+  // =====================
   if (interaction.commandName === 'suggestqotd') {
 
     const modal = new ModalBuilder()
@@ -321,7 +280,9 @@ It is ${position}/${total} in the queue.`,
     return interaction.showModal(modal);
   }
 
-  // queue viewer
+  // =====================
+  // QUEUE (FILTERED TO YOU ONLY)
+  // =====================
   if (interaction.commandName === 'qotdqueue') {
 
     const inputChannel = await client.channels.fetch(INPUT_CHANNEL_ID);
@@ -330,16 +291,39 @@ It is ${position}/${total} in the queue.`,
     const sorted = [...messages.values()]
       .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
 
-    if (sorted.length === 0) {
+    const yourMessages = sorted
+      .map((m, i) => ({ msg: m, index: i + 1 }))
+      .filter(x => x.msg.content.includes(`<@${interaction.user.id}>`));
+
+    if (yourMessages.length === 0) {
       return interaction.reply({
-        content: "Queue is empty.",
+        content: "You have no QOTDs in the queue.",
         ephemeral: true
       });
     }
 
-    const lines = sorted.map((m, i) =>
-      `${i + 1}. ${m.content.split("\n")[0]}`
-    );
+    const ADELAIDE_OFFSET = 9.5 * 60 * 60 * 1000;
+
+    const now = new Date();
+    const adelaideNow = new Date(now.getTime() + ADELAIDE_OFFSET);
+
+    let base = new Date(adelaideNow);
+    base.setHours(16, 30, 0, 0);
+
+    if (adelaideNow > base) {
+      base.setDate(base.getDate() + 1);
+    }
+
+    const lines = yourMessages.map(q => {
+      const date = new Date(base);
+      date.setDate(date.getDate() + (q.index - 1));
+
+      const unix = Math.floor((date.getTime() - ADELAIDE_OFFSET) / 1000);
+
+      const title = q.msg.content.split("\n")[0];
+
+      return `**#${q.index}** <t:${unix}:R> — ${title}`;
+    });
 
     return interaction.reply({
       content: lines.join("\n"),
@@ -347,7 +331,9 @@ It is ${position}/${total} in the queue.`,
     });
   }
 
-  // owner send
+  // =====================
+  // OWNER SEND
+  // =====================
   if (interaction.commandName === 'sendqotd') {
 
     if (interaction.user.id !== OWNER_ID) {
