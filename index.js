@@ -42,7 +42,7 @@ const simpleCommands = {
   },
 
     about: {
-    message: "Made by <@1285513478315966506> for teting and sending qotds",
+    message: "Made by <@1285513478315966506> for testing and sending qotds",
     description: "silly command"
   }
 
