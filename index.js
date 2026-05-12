@@ -4,7 +4,11 @@ const {
   REST,
   Routes,
   SlashCommandBuilder,
-  EmbedBuilder
+  EmbedBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ActionRowBuilder
 } = require('discord.js');
 
 // =====================
@@ -28,24 +32,25 @@ const OWNER_ID = "1285513478315966506";
 const simpleCommands = {
   ping: {
     message: "Pong!",
-    description: "Check if the bot is alive"
+    description: "Replies with pong"
   },
 
   cat: {
-    message: "🐈",
-    description: "cat"
+    message: "🐈 meow",
+    description: "very important cat command"
   },
 
   silly: {
-    message: "silly sword fighting",
+    message: "silly sword fighting moment",
     description: "silly command"
   },
 
-    about: {
-    message: "Made by <@1285513478315966506> for testing and sending qotds",
-    description: "silly command"
+  rules: {
+    message: `1. Be nice
+2. No spam
+3. no eating drywall`,
+    description: "Shows the server rules"
   }
-
 };
 
 // =====================
@@ -77,10 +82,16 @@ const commands = [
       .toJSON()
   ),
 
-  // qotd command
+  // send qotd
   new SlashCommandBuilder()
     .setName('sendqotd')
     .setDescription('Manually send QOTD')
+    .toJSON(),
+
+  // suggest qotd
+  new SlashCommandBuilder()
+    .setName('suggestqotd')
+    .setDescription('Suggest a QOTD')
     .toJSON()
 ];
 
@@ -224,6 +235,50 @@ client.once('ready', () => {
 // COMMAND HANDLER
 // =====================
 client.on('interactionCreate', async (interaction) => {
+
+  // =====================
+  // MODAL SUBMIT
+  // =====================
+  if (interaction.isModalSubmit()) {
+
+    if (interaction.customId === 'qotdModal') {
+
+      const question =
+        interaction.fields.getTextInputValue('question');
+
+      const emoji1 =
+        interaction.fields.getTextInputValue('emoji1');
+
+      const text1 =
+        interaction.fields.getTextInputValue('text1');
+
+      const emoji2 =
+        interaction.fields.getTextInputValue('emoji2');
+
+      const text2 =
+        interaction.fields.getTextInputValue('text2');
+
+      const inputChannel =
+        await client.channels.fetch(INPUT_CHANNEL_ID);
+
+      await inputChannel.send(
+`"${question}" suggested by <@${interaction.user.id}>
+${emoji1} | ${text1}
+${emoji2} | ${text2}`
+      );
+
+      await interaction.reply({
+        content: "QOTD suggested!",
+        ephemeral: true
+      });
+    }
+
+    return;
+  }
+
+  // =====================
+  // SLASH COMMANDS
+  // =====================
   if (!interaction.isChatInputCommand()) return;
 
   // simple commands
@@ -231,6 +286,54 @@ client.on('interactionCreate', async (interaction) => {
     return interaction.reply(
       simpleCommands[interaction.commandName].message
     );
+  }
+
+  // suggest qotd
+  if (interaction.commandName === 'suggestqotd') {
+
+    const modal = new ModalBuilder()
+      .setCustomId('qotdModal')
+      .setTitle('Suggest a QOTD');
+
+    const questionInput = new TextInputBuilder()
+      .setCustomId('question')
+      .setLabel('QOTD Question')
+      .setStyle(TextInputStyle.Paragraph)
+      .setRequired(true);
+
+    const emoji1Input = new TextInputBuilder()
+      .setCustomId('emoji1')
+      .setLabel('Emoji 1')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+
+    const text1Input = new TextInputBuilder()
+      .setCustomId('text1')
+      .setLabel('Text for Emoji 1')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+
+    const emoji2Input = new TextInputBuilder()
+      .setCustomId('emoji2')
+      .setLabel('Emoji 2')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+
+    const text2Input = new TextInputBuilder()
+      .setCustomId('text2')
+      .setLabel('Text for Emoji 2')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+
+    modal.addComponents(
+      new ActionRowBuilder().addComponents(questionInput),
+      new ActionRowBuilder().addComponents(emoji1Input),
+      new ActionRowBuilder().addComponents(text1Input),
+      new ActionRowBuilder().addComponents(emoji2Input),
+      new ActionRowBuilder().addComponents(text2Input)
+    );
+
+    await interaction.showModal(modal);
   }
 
   // owner-only qotd command
