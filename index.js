@@ -18,16 +18,34 @@ const INPUT_CHANNEL_ID = process.env.INPUT_CHANNEL_ID;
 const OUTPUT_CHANNEL_ID = process.env.OUTPUT_CHANNEL_ID;
 
 // =====================
+// OWNER
+// =====================
+const OWNER_ID = "1285513478315966506";
+
+// =====================
 // SIMPLE COMMANDS
 // =====================
 const simpleCommands = {
-  ping: "Pong!",
+  ping: {
+    message: "Pong!",
+    description: "Check if the bot is alive"
+  },
 
-  cat: "🐈",
+  cat: {
+    message: "🐈",
+    description: "cat"
+  },
 
-  silly: "silly sword fighting",
+  silly: {
+    message: "silly sword fighting",
+    description: "silly command"
+  },
 
-  about: "made by <@1285513478315966506> for sending qotds and testing stuff"
+    about: {
+    message: "Made by <@1285513478315966506> for teting and sending qotds",
+    description: "silly command"
+  }
+
 };
 
 // =====================
@@ -51,11 +69,11 @@ const client = new Client({
 // COMMANDS
 // =====================
 const commands = [
-  // auto simple commands
+  // simple commands
   ...Object.keys(simpleCommands).map(cmd =>
     new SlashCommandBuilder()
       .setName(cmd)
-      .setDescription(`Simple command: ${cmd}`)
+      .setDescription(simpleCommands[cmd].description)
       .toJSON()
   ),
 
@@ -211,12 +229,20 @@ client.on('interactionCreate', async (interaction) => {
   // simple commands
   if (simpleCommands[interaction.commandName]) {
     return interaction.reply(
-      simpleCommands[interaction.commandName]
+      simpleCommands[interaction.commandName].message
     );
   }
 
-  // qotd command
+  // owner-only qotd command
   if (interaction.commandName === 'sendqotd') {
+
+    if (interaction.user.id !== OWNER_ID) {
+      return interaction.reply({
+        content: "You can't use this command.",
+        ephemeral: true
+      });
+    }
+
     await interaction.reply("Sending QOTD...");
     await sendQOTD();
   }
