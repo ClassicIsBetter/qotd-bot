@@ -18,7 +18,6 @@ const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
 
-const INPUT_CHANNEL_ID = process.env.INPUT_CHANNEL_ID;
 const OUTPUT_CHANNEL_ID = process.env.OUTPUT_CHANNEL_ID;
 
 // =====================
@@ -27,12 +26,27 @@ const OUTPUT_CHANNEL_ID = process.env.OUTPUT_CHANNEL_ID;
 const OWNER_ID = "1285513478315966506";
 
 // =====================
-// SIMPLE COMMANDS
+// STATE
+// =====================
+let qotdNumber = 19;
+let qotdQueue = [];
+
+console.log("Bot starting...");
+
+// =====================
+// CLIENT
+// =====================
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds]
+});
+
+// =====================
+// COMMANDS
 // =====================
 const simpleCommands = {
   ping: { message: "Pong!", description: "Replies with pong" },
   cat: { message: "🐈 meow", description: "cat command" },
-  silly: { message: "silly sword fighting moment", description: "silly" },
+  silly: { message: "silly sword fighting moment", description: "silly command" },
   rules: {
     message: `1. Be nice
 2. No spam
@@ -41,23 +55,6 @@ const simpleCommands = {
   }
 };
 
-// =====================
-// STATE
-// =====================
-let qotdNumber = 19;
-
-console.log("Bot starting...");
-
-// =====================
-// CLIENT
-// =====================
-const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
-});
-
-// =====================
-// COMMANDS
-// =====================
 const commands = [
   ...Object.keys(simpleCommands).map(cmd =>
     new SlashCommandBuilder()
@@ -67,27 +64,33 @@ const commands = [
   ),
 
   new SlashCommandBuilder()
-    .setName('sendqotd')
-    .setDescription('Manually send QOTD')
+    .setName('suggestqotd')
+    .setDescription('Suggest a QOTD')
     .toJSON(),
 
   new SlashCommandBuilder()
-    .setName('suggestqotd')
-    .setDescription('Suggest a QOTD')
+    .setName('sendqotd')
+    .setDescription('Force send QOTD (owner only)')
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName('qotdqueue')
+    .setDescription('View QOTD queue')
     .toJSON()
 ];
 
+// =====================
+// REGISTER COMMANDS
+// =====================
 const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 (async () => {
   try {
     console.log("Registering commands...");
-
     await rest.put(
       Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
       { body: commands }
     );
-
     console.log("Commands ready.");
   } catch (err) {
     console.error(err);
@@ -95,56 +98,34 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
 })();
 
 // =====================
-// HELPERS
-// =====================
-async function getOldestMessage(channel) {
-  const messages = await channel.messages.fetch({ limit: 100 });
-
-  return messages
-    .sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-    .first();
-}
-
-function extractEmoji(line) {
-  if (!line) return null;
-  return line.split("|")[0].trim();
-}
-
-// =====================
 // SEND QOTD
 // =====================
 async function sendQOTD() {
   try {
-    const inputChannel = await client.channels.fetch(INPUT_CHANNEL_ID);
     const outputChannel = await client.channels.fetch(OUTPUT_CHANNEL_ID);
 
-    const oldest = await getOldestMessage(inputChannel);
-    if (!oldest) return;
+    if (qotdQueue.length === 0) return;
 
-    const lines = oldest.content
-      .split("\n")
-      .map(l => l.trim())
-      .filter(Boolean);
-
-    const reaction1 = extractEmoji(lines.at(-2));
-    const reaction2 = extractEmoji(lines.at(-1));
+    const qotd = qotdQueue.shift();
 
     const embed = new EmbedBuilder()
       .setTitle(`QOTD #${qotdNumber}`)
-      .setDescription(lines.join("\n"))
+      .setDescription(
+`${qotd.question} suggested by <@${qotd.userId}>
+${qotd.emoji1} | ${qotd.text1}
+${qotd.emoji2} | ${qotd.text2}`
+      )
       .setColor(0xffcc00);
 
     const sent = await outputChannel.send({ embeds: [embed] });
 
-    if (reaction1) await sent.react(reaction1).catch(() => {});
-    if (reaction2) await sent.react(reaction2).catch(() => {});
+    await sent.react(qotd.emoji1).catch(() => {});
+    await sent.react(qotd.emoji2).catch(() => {});
 
     await sent.startThread({
       name: `QOTD #${qotdNumber} discussion`,
       autoArchiveDuration: 1440
     }).catch(() => {});
-
-    await oldest.delete().catch(() => {});
 
     qotdNumber++;
 
@@ -154,7 +135,7 @@ async function sendQOTD() {
 }
 
 // =====================
-// SCHEDULE (ACST 4:30)
+// SCHEDULE (4:30 PM ACST)
 // =====================
 function scheduleQOTD(hour, minute) {
   setInterval(() => {
@@ -201,34 +182,20 @@ client.on('interactionCreate', async (interaction) => {
       const emoji2 = interaction.fields.getTextInputValue('emoji2');
       const text2 = interaction.fields.getTextInputValue('text2');
 
-      const inputChannel = await client.channels.fetch(INPUT_CHANNEL_ID);
+      qotdQueue.push({
+        question,
+        emoji1,
+        text1,
+        emoji2,
+        text2,
+        userId: interaction.user.id
+      });
 
-      const sentMessage = await inputChannel.send(
-`"${question}" suggested by <@${interaction.user.id}>
-${emoji1} | ${text1}
-${emoji2} | ${text2}`
-      );
+      const position = qotdQueue.length;
 
-      // =====================
-      // QUEUE POSITION
-      // =====================
-      const messages = await inputChannel.messages.fetch({ limit: 100 });
-
-      const sorted = [...messages.values()]
-        .sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-
-      const position =
-        sorted.findIndex(m => m.id === sentMessage.id) + 1;
-
-      const total = sorted.length;
-
-      // =====================
-      // FIXED TIMEZONE LOGIC (NO BUGGY STRING DATES)
-      // =====================
       const ADELAIDE_OFFSET = 9.5 * 60 * 60 * 1000;
 
       const now = new Date();
-
       const adelaideNow = new Date(now.getTime() + ADELAIDE_OFFSET);
 
       let sendDate = new Date(adelaideNow);
@@ -249,7 +216,7 @@ ${emoji2} | ${text2}`
 `QOTD suggested!
 
 Your QOTD will be sent <t:${unix}:R>
-It is ${position}/${total} in the queue.`,
+It is ${position}/${qotdQueue.length} in the queue.`,
         ephemeral: true
       });
     }
@@ -266,6 +233,7 @@ It is ${position}/${total} in the queue.`,
     return interaction.reply(simpleCommands[interaction.commandName].message);
   }
 
+  // suggest modal
   if (interaction.commandName === 'suggestqotd') {
 
     const modal = new ModalBuilder()
@@ -308,6 +276,27 @@ It is ${position}/${total} in the queue.`,
     return interaction.showModal(modal);
   }
 
+  // queue viewer
+  if (interaction.commandName === 'qotdqueue') {
+
+    if (qotdQueue.length === 0) {
+      return interaction.reply({
+        content: "Queue is empty.",
+        ephemeral: true
+      });
+    }
+
+    const lines = qotdQueue.map((q, i) =>
+      `${i + 1}. ${q.question}`
+    );
+
+    return interaction.reply({
+      content: lines.join("\n"),
+      ephemeral: true
+    });
+  }
+
+  // owner send
   if (interaction.commandName === 'sendqotd') {
 
     if (interaction.user.id !== OWNER_ID) {
