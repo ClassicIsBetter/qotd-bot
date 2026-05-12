@@ -56,7 +56,7 @@ const simpleCommands = {
 // =====================
 // STATE
 // =====================
-let qotdNumber = 19;
+let qotdNumber = 20;
 
 console.log("Bot starting...");
 
