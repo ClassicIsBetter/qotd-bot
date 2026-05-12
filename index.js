@@ -7,7 +7,9 @@ const {
   EmbedBuilder
 } = require('discord.js');
 
-// 🔑 CONFIG
+// =====================
+// ENV VARIABLES
+// =====================
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID;
@@ -15,13 +17,16 @@ const GUILD_ID = process.env.GUILD_ID;
 const INPUT_CHANNEL_ID = process.env.INPUT_CHANNEL_ID;
 const OUTPUT_CHANNEL_ID = process.env.OUTPUT_CHANNEL_ID;
 
+// =====================
+// STATE
+// =====================
 let qotdNumber = 19;
 
 console.log("Bot starting...");
 
-// --------------------
+// =====================
 // CLIENT
-// --------------------
+// =====================
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -29,19 +34,18 @@ const client = new Client({
   ],
 });
 
-// --------------------
-// COMMAND
-// --------------------
+// =====================
+// SLASH COMMAND
+// =====================
 const commands = [
   new SlashCommandBuilder()
     .setName('sendqotd')
-    .setDescription('Send QOTD now')
+    .setDescription('Manually send QOTD')
     .toJSON()
 ];
 
 const rest = new REST({ version: '10' }).setToken(TOKEN);
 
-// register command
 (async () => {
   try {
     console.log("Registering commands...");
@@ -57,93 +61,104 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
   }
 })();
 
-// --------------------
-// READY
-// --------------------
-client.once('ready', () => {
-  console.log(`Logged in as ${client.user.tag}`);
-
-  // ⏰ DAILY SCHEDULE (8:00 PM)
-  scheduleQOTD(20, 0);
-});
-
-// --------------------
-// GET OLDEST MESSAGE
-// --------------------
+// =====================
+// FETCH OLDEST MESSAGE
+// =====================
 async function getOldestMessage(channel) {
   const messages = await channel.messages.fetch({ limit: 100 });
   return messages.sort((a, b) => a.createdTimestamp - b.createdTimestamp).first();
 }
 
-// --------------------
-// QOTD FUNCTION
-// --------------------
-async function sendQOTD() {
-  const inputChannel = await client.channels.fetch(INPUT_CHANNEL_ID);
-  const outputChannel = await client.channels.fetch(OUTPUT_CHANNEL_ID);
-
-  const oldest = await getOldestMessage(inputChannel);
-  if (!oldest) return console.log("No messages found");
-
-  const lines = oldest.content
-    .split("\n")
-    .map(l => l.trim())
-    .filter(Boolean);
-
-  const secondLastLine = lines.at(-2);
-  const lastLine = lines.at(-1);
-
-  function extractEmoji(line) {
-    if (!line) return null;
-    return line.split("|")[0].trim();
-  }
-
-  const reaction1 = extractEmoji(secondLastLine);
-  const reaction2 = extractEmoji(lastLine);
-
-  const fullMessage = lines.join("\n");
-
-  const embed = new EmbedBuilder()
-    .setTitle(`QOTD #${qotdNumber}`)
-    .setDescription(fullMessage)
-    .setColor(0xffcc00);
-
-  const sent = await outputChannel.send({ embeds: [embed] });
-
-  // reactions
-  if (reaction1) await sent.react(reaction1);
-  if (reaction2) await sent.react(reaction2);
-
-  // thread
-  await sent.startThread({
-    name: `QOTD #${qotdNumber} discussion`,
-    autoArchiveDuration: 1440
-  });
-
-  // delete used message
-  await oldest.delete().catch(() => {});
-
-  console.log(`Sent QOTD #${qotdNumber}`);
-
-  qotdNumber++;
+// =====================
+// SAFE EMOJI PARSER
+// =====================
+function extractEmoji(line) {
+  if (!line) return null;
+  return line.split("|")[0].trim();
 }
 
-// --------------------
-// SCHEDULE FUNCTION
-// --------------------
+// =====================
+// QOTD FUNCTION
+// =====================
+async function sendQOTD() {
+  try {
+    const inputChannel = await client.channels.fetch(INPUT_CHANNEL_ID);
+    const outputChannel = await client.channels.fetch(OUTPUT_CHANNEL_ID);
+
+    const oldest = await getOldestMessage(inputChannel);
+    if (!oldest) return console.log("No messages found");
+
+    const lines = oldest.content
+      .split("\n")
+      .map(l => l.trim())
+      .filter(Boolean);
+
+    const reaction1 = extractEmoji(lines.at(-2));
+    const reaction2 = extractEmoji(lines.at(-1));
+
+    const fullMessage = lines.join("\n");
+
+    const embed = new EmbedBuilder()
+      .setTitle(`QOTD #${qotdNumber}`)
+      .setDescription(fullMessage)
+      .setColor(0xffcc00);
+
+    const sent = await outputChannel.send({ embeds: [embed] });
+
+    // reactions
+    if (reaction1) await sent.react(reaction1);
+    if (reaction2) await sent.react(reaction2);
+
+    // thread (safe)
+    await sent.startThread({
+      name: `QOTD #${qotdNumber} discussion`,
+      autoArchiveDuration: 1440
+    }).catch(() => {});
+
+    // delete used message
+    await oldest.delete().catch(() => {});
+
+    console.log(`Sent QOTD #${qotdNumber}`);
+
+    qotdNumber++;
+  } catch (err) {
+    console.error("QOTD error:", err);
+  }
+}
+
+// =====================
+// SCHEDULE (ACST SAFE)
+// =====================
 function scheduleQOTD(hour, minute) {
   setInterval(() => {
     const now = new Date();
 
-    if (now.getHours() === hour && now.getMinutes() === minute) {
+    const adelaide = new Date(
+      now.toLocaleString("en-US", { timeZone: "Australia/Adelaide" })
+    );
+
+    if (
+      adelaide.getHours() === hour &&
+      adelaide.getMinutes() === minute
+    ) {
       sendQOTD();
     }
   }, 60 * 1000);
 }
 
-// --------------------
+// =====================
+// READY
+// =====================
+client.once('ready', () => {
+  console.log(`Logged in as ${client.user.tag}`);
+
+  // 4:30 PM ACST (change to 4 if AM)
+  scheduleQOTD(16, 30);
+});
+
+// =====================
 // COMMAND HANDLER
-// --------------------
+// =====================
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -153,7 +168,7 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
-// --------------------
+// =====================
 // LOGIN
-// --------------------
+// =====================
 client.login(TOKEN);
