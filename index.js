@@ -29,7 +29,7 @@ const OWNER_ID = "YOUR_DISCORD_USER_ID";
 // =====================
 // STATE
 // =====================
-let qotdNumber = 19;
+let qotdNumber = 20;
 
 console.log("Bot starting...");
 
