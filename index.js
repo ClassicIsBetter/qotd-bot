@@ -76,7 +76,10 @@ Suggest a QOTD
 View your queued QOTDs + statuses
 
 /sendqotd
-Force send a QOTD (owner only)
+Force send oldest QOTD
+
+/forceqotd
+Force send a specific queue number
 
 /help
 Shows this command list
@@ -125,7 +128,18 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName('sendqotd')
-    .setDescription('Force send QOTD')
+    .setDescription('Force send oldest QOTD')
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName('forceqotd')
+    .setDescription('Force send a specific queued QOTD')
+    .addIntegerOption(option =>
+      option
+        .setName('number')
+        .setDescription('Queue number to send')
+        .setRequired(true)
+    )
     .toJSON(),
 
   new SlashCommandBuilder()
@@ -173,6 +187,54 @@ function extractEmojis(lines) {
 }
 
 // =====================
+// POST QOTD
+// =====================
+async function postQOTD(content) {
+
+  const outputChannel =
+    await client.channels.fetch(
+      OUTPUT_CHANNEL_ID
+    );
+
+  const lines = content
+    .split("\n")
+    .map(l => l.trim())
+    .filter(Boolean);
+
+  const reactions =
+    extractEmojis(lines);
+
+  const embed = new EmbedBuilder()
+    .setTitle(`QOTD #${qotdNumber}`)
+    .setDescription(content)
+    .setColor(0xffcc00);
+
+  const sent = await outputChannel.send({
+    content: `<@&${QOTD_ROLE_ID}>`,
+    embeds: [embed]
+  });
+
+  // =====================
+  // REACTIONS
+  // =====================
+  for (const reaction of reactions) {
+
+    await sent.react(reaction)
+      .catch(() => {});
+  }
+
+  // =====================
+  // THREAD
+  // =====================
+  await sent.startThread({
+    name: `QOTD #${qotdNumber} discussion`,
+    autoArchiveDuration: 1440
+  }).catch(() => {});
+
+  qotdNumber++;
+}
+
+// =====================
 // SEND QOTD
 // =====================
 async function sendQOTD() {
@@ -180,97 +242,61 @@ async function sendQOTD() {
   try {
 
     const inputChannel =
-      await client.channels.fetch(INPUT_CHANNEL_ID);
-
-    const outputChannel =
-      await client.channels.fetch(OUTPUT_CHANNEL_ID);
+      await client.channels.fetch(
+        INPUT_CHANNEL_ID
+      );
 
     const messages =
       await inputChannel.messages.fetch({
         limit: 100
       });
 
-    const sorted = [...messages.values()]
-      .sort((a, b) =>
-        a.createdTimestamp - b.createdTimestamp
-      );
-
-    let content;
-    let messageToDelete = null;
+    const sorted =
+      [...messages.values()]
+        .sort((a, b) =>
+          a.createdTimestamp -
+          b.createdTimestamp
+        );
 
     // =====================
     // REAL SUBMISSION
     // =====================
     if (sorted.length > 0) {
 
-      const oldest = sorted[0];
+      const oldest =
+        sorted[0];
 
-      content = oldest.content;
+      await postQOTD(
+        oldest.content
+      );
 
-      messageToDelete = oldest;
+      await oldest.delete()
+        .catch(() => {});
 
     } else {
 
       // =====================
       // PRESET
       // =====================
-      content =
+      const randomPreset =
         presetQOTDs[
           Math.floor(
-            Math.random() * presetQOTDs.length
+            Math.random() *
+            presetQOTDs.length
           )
         ];
+
+      await postQOTD(
+        randomPreset
+      );
     }
-
-    const lines = content
-      .split("\n")
-      .map(l => l.trim())
-      .filter(Boolean);
-
-    const reactions =
-      extractEmojis(lines);
-
-    const embed = new EmbedBuilder()
-      .setTitle(`QOTD #${qotdNumber}`)
-      .setDescription(content)
-      .setColor(0xffcc00);
-
-    const sent = await outputChannel.send({
-      content: `<@&${QOTD_ROLE_ID}>`,
-      embeds: [embed]
-    });
-
-    // =====================
-    // REACTIONS
-    // =====================
-    for (const reaction of reactions) {
-
-      await sent.react(reaction)
-        .catch(() => {});
-    }
-
-    // =====================
-    // THREAD
-    // =====================
-    await sent.startThread({
-      name: `QOTD #${qotdNumber} discussion`,
-      autoArchiveDuration: 1440
-    }).catch(() => {});
-
-    // =====================
-    // DELETE USED MESSAGE
-    // =====================
-    if (messageToDelete) {
-
-      await messageToDelete.delete()
-        .catch(() => {});
-    }
-
-    qotdNumber++;
 
   } catch (err) {
 
-    console.error("QOTD error:", err);
+    console.error(
+      "QOTD error:",
+      err
+    );
   }
 }
 
@@ -284,9 +310,13 @@ function scheduleQOTD(hour, minute) {
     const now = new Date();
 
     const adelaide = new Date(
-      now.toLocaleString("en-US", {
-        timeZone: "Australia/Adelaide"
-      })
+      now.toLocaleString(
+        "en-US",
+        {
+          timeZone:
+            "Australia/Adelaide"
+        }
+      )
     );
 
     if (
@@ -325,7 +355,8 @@ client.on(
     if (interaction.isModalSubmit()) {
 
       if (
-        interaction.customId === 'qotdModal'
+        interaction.customId ===
+        'qotdModal'
       ) {
 
         const question =
@@ -347,27 +378,45 @@ client.on(
 `"${question}" suggested by <@${interaction.user.id}>
 ${answers}`;
 
-        const embed = new EmbedBuilder()
-          .setTitle("New QOTD Suggestion")
-          .setDescription(qotdContent)
-          .setColor(0xffff00)
-          .setFooter({
-            text: "Status: Pending"
-          });
+        const embed =
+          new EmbedBuilder()
+            .setTitle(
+              "New QOTD Suggestion"
+            )
+            .setDescription(
+              qotdContent
+            )
+            .setColor(0xffff00)
+            .setFooter({
+              text:
+                "Status: Pending"
+            });
 
         const buttons =
           new ActionRowBuilder()
             .addComponents(
 
               new ButtonBuilder()
-                .setCustomId("accept_qotd")
-                .setLabel("Accept")
-                .setStyle(ButtonStyle.Success),
+                .setCustomId(
+                  "accept_qotd"
+                )
+                .setLabel(
+                  "Accept"
+                )
+                .setStyle(
+                  ButtonStyle.Success
+                ),
 
               new ButtonBuilder()
-                .setCustomId("decline_qotd")
-                .setLabel("Decline")
-                .setStyle(ButtonStyle.Danger)
+                .setCustomId(
+                  "decline_qotd"
+                )
+                .setLabel(
+                  "Decline"
+                )
+                .setStyle(
+                  ButtonStyle.Danger
+                )
             );
 
         const reviewMessage =
@@ -380,7 +429,8 @@ ${answers}`;
         // REVIEW THREAD
         // =====================
         await reviewMessage.startThread({
-          name: `Review: ${question.slice(0, 50)}`,
+          name:
+            `Review: ${question.slice(0, 50)}`,
           autoArchiveDuration: 1440
         }).catch(() => {});
 
@@ -400,11 +450,13 @@ ${answers}`;
     if (interaction.isButton()) {
 
       if (
-        interaction.user.id !== OWNER_ID
+        interaction.user.id !==
+        OWNER_ID
       ) {
 
         return interaction.reply({
-          content: "No permission.",
+          content:
+            "No permission.",
           ephemeral: true
         });
       }
@@ -433,10 +485,13 @@ ${answers}`;
             INPUT_CHANNEL_ID
           );
 
-        await inputChannel.send(content);
+        await inputChannel.send(
+          content
+        );
 
         newEmbed.setFooter({
-          text: "Status: Accepted ✅"
+          text:
+            "Status: Accepted ✅"
         });
 
         await interaction.update({
@@ -456,7 +511,8 @@ ${answers}`;
       ) {
 
         newEmbed.setFooter({
-          text: "Status: Declined ❌"
+          text:
+            "Status: Declined ❌"
         });
 
         await interaction.update({
@@ -478,24 +534,39 @@ ${answers}`;
     // =====================
     // SIMPLE COMMANDS
     // =====================
-    if (simpleCommands[interaction.commandName]) {
+    if (
+      simpleCommands[
+        interaction.commandName
+      ]
+    ) {
 
       const cmd =
-        simpleCommands[interaction.commandName];
+        simpleCommands[
+          interaction.commandName
+        ];
 
       if (cmd.embed) {
 
-        const embed = new EmbedBuilder()
-          .setTitle(cmd.title || "Command")
-          .setDescription(cmd.message)
-          .setColor(cmd.color || 0xffffff);
+        const embed =
+          new EmbedBuilder()
+            .setTitle(
+              cmd.title || "Command"
+            )
+            .setDescription(
+              cmd.message
+            )
+            .setColor(
+              cmd.color || 0xffffff
+            );
 
         return interaction.reply({
           embeds: [embed]
         });
       }
 
-      return interaction.reply(cmd.message);
+      return interaction.reply(
+        cmd.message
+      );
     }
 
     // =====================
@@ -545,11 +616,16 @@ ${answers}`;
           );
 
       modal.addComponents(
-        new ActionRowBuilder()
-          .addComponents(question),
 
         new ActionRowBuilder()
-          .addComponents(answers)
+          .addComponents(
+            question
+          ),
+
+        new ActionRowBuilder()
+          .addComponents(
+            answers
+          )
       );
 
       return interaction.showModal(
@@ -596,9 +672,11 @@ ${answers}`;
         [...reviewMessages.values()]
           .filter(m =>
             m.embeds.length > 0 &&
-            m.embeds[0].description?.includes(
-              `<@${interaction.user.id}>`
-            )
+            m.embeds[0]
+              .description
+              ?.includes(
+                `<@${interaction.user.id}>`
+              )
           );
 
       if (
@@ -613,7 +691,10 @@ ${answers}`;
       }
 
       const ADELAIDE_OFFSET =
-        9.5 * 60 * 60 * 1000;
+        9.5 *
+        60 *
+        60 *
+        1000;
 
       const now = new Date();
 
@@ -658,7 +739,9 @@ ${answers}`;
           // ACCEPTED
           // =====================
           if (
-            footer.includes("Accepted")
+            footer.includes(
+              "Accepted"
+            )
           ) {
 
             const queueIndex =
@@ -667,7 +750,9 @@ ${answers}`;
                 embed.description
               );
 
-            if (queueIndex !== -1) {
+            if (
+              queueIndex !== -1
+            ) {
 
               const date =
                 new Date(base);
@@ -699,6 +784,83 @@ ${footer}`;
       return interaction.reply({
         content:
           lines.join("\n\n"),
+        ephemeral: true
+      });
+    }
+
+    // =====================
+    // FORCEQOTD
+    // =====================
+    if (
+      interaction.commandName ===
+      'forceqotd'
+    ) {
+
+      if (
+        interaction.user.id !==
+        OWNER_ID
+      ) {
+
+        return interaction.reply({
+          content:
+            "No permission.",
+          ephemeral: true
+        });
+      }
+
+      const number =
+        interaction.options.getInteger(
+          'number'
+        );
+
+      const inputChannel =
+        await client.channels.fetch(
+          INPUT_CHANNEL_ID
+        );
+
+      const messages =
+        await inputChannel.messages.fetch({
+          limit: 100
+        });
+
+      const sorted =
+        [...messages.values()]
+          .sort((a, b) =>
+            a.createdTimestamp -
+            b.createdTimestamp
+          );
+
+      // =====================
+      // INVALID NUMBER
+      // =====================
+      if (
+        number < 1 ||
+        number > sorted.length
+      ) {
+
+        return interaction.reply({
+          content:
+            `Invalid queue number. There are ${sorted.length} QOTDs queued.`,
+          ephemeral: true
+        });
+      }
+
+      const targetMessage =
+        sorted[number - 1];
+
+      await postQOTD(
+        targetMessage.content
+      );
+
+      // =====================
+      // DELETE FROM QUEUE
+      // =====================
+      await targetMessage.delete()
+        .catch(() => {});
+
+      return interaction.reply({
+        content:
+          `Forced QOTD #${number} to send.`,
         ephemeral: true
       });
     }
