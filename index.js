@@ -681,8 +681,7 @@ It is ${position}/${total} in the queue.`,
                 "@you"
               );
 
-          return
-`#${q.index} • <t:${unix}:R>
+          return `#${q.index} • <t:${unix}:R>
 ${title}`;
         });
 
