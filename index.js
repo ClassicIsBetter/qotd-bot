@@ -92,7 +92,7 @@ Check if the bot is alive
 // =====================
 // STATE
 // =====================
-let qotdNumber = 21;
+let qotdNumber = 19;
 
 console.log("Bot starting...");
 
@@ -161,15 +161,15 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
 })();
 
 // =====================
-// EXTRACT EMOJI
+// EXTRACT EMOJIS
 // =====================
-function extractEmoji(line) {
+function extractEmojis(lines) {
 
-  if (!line) return null;
-
-  return line
-    .split("|")[0]
-    .trim();
+  return lines
+    .filter(line => line.includes("|"))
+    .map(line =>
+      line.split("|")[0].trim()
+    );
 }
 
 // =====================
@@ -186,7 +186,9 @@ async function sendQOTD() {
       await client.channels.fetch(OUTPUT_CHANNEL_ID);
 
     const messages =
-      await inputChannel.messages.fetch({ limit: 100 });
+      await inputChannel.messages.fetch({
+        limit: 100
+      });
 
     const sorted = [...messages.values()]
       .sort((a, b) =>
@@ -196,6 +198,9 @@ async function sendQOTD() {
     let content;
     let messageToDelete = null;
 
+    // =====================
+    // REAL SUBMISSION
+    // =====================
     if (sorted.length > 0) {
 
       const oldest = sorted[0];
@@ -206,6 +211,9 @@ async function sendQOTD() {
 
     } else {
 
+      // =====================
+      // PRESET
+      // =====================
       content =
         presetQOTDs[
           Math.floor(
@@ -219,11 +227,8 @@ async function sendQOTD() {
       .map(l => l.trim())
       .filter(Boolean);
 
-    const reaction1 =
-      extractEmoji(lines.at(-2));
-
-    const reaction2 =
-      extractEmoji(lines.at(-1));
+    const reactions =
+      extractEmojis(lines);
 
     const embed = new EmbedBuilder()
       .setTitle(`QOTD #${qotdNumber}`)
@@ -235,22 +240,28 @@ async function sendQOTD() {
       embeds: [embed]
     });
 
-    if (reaction1) {
-      await sent.react(reaction1)
+    // =====================
+    // REACTIONS
+    // =====================
+    for (const reaction of reactions) {
+
+      await sent.react(reaction)
         .catch(() => {});
     }
 
-    if (reaction2) {
-      await sent.react(reaction2)
-        .catch(() => {});
-    }
-
+    // =====================
+    // THREAD
+    // =====================
     await sent.startThread({
       name: `QOTD #${qotdNumber} discussion`,
       autoArchiveDuration: 1440
     }).catch(() => {});
 
+    // =====================
+    // DELETE USED MESSAGE
+    // =====================
     if (messageToDelete) {
+
       await messageToDelete.delete()
         .catch(() => {});
     }
@@ -258,6 +269,7 @@ async function sendQOTD() {
     qotdNumber++;
 
   } catch (err) {
+
     console.error("QOTD error:", err);
   }
 }
@@ -281,6 +293,7 @@ function scheduleQOTD(hour, minute) {
       adelaide.getHours() === hour &&
       adelaide.getMinutes() === minute
     ) {
+
       sendQOTD();
     }
 
@@ -320,24 +333,9 @@ client.on(
             'question'
           );
 
-        const emoji1 =
+        const answers =
           interaction.fields.getTextInputValue(
-            'emoji1'
-          );
-
-        const text1 =
-          interaction.fields.getTextInputValue(
-            'text1'
-          );
-
-        const emoji2 =
-          interaction.fields.getTextInputValue(
-            'emoji2'
-          );
-
-        const text2 =
-          interaction.fields.getTextInputValue(
-            'text2'
+            'answers'
           );
 
         const reviewChannel =
@@ -347,8 +345,7 @@ client.on(
 
         const qotdContent =
 `"${question}" suggested by <@${interaction.user.id}>
-${emoji1} | ${text1}
-${emoji2} | ${text2}`;
+${answers}`;
 
         const embed = new EmbedBuilder()
           .setTitle("New QOTD Suggestion")
@@ -373,10 +370,19 @@ ${emoji2} | ${text2}`;
                 .setStyle(ButtonStyle.Danger)
             );
 
-        await reviewChannel.send({
-          embeds: [embed],
-          components: [buttons]
-        });
+        const reviewMessage =
+          await reviewChannel.send({
+            embeds: [embed],
+            components: [buttons]
+          });
+
+        // =====================
+        // REVIEW THREAD
+        // =====================
+        await reviewMessage.startThread({
+          name: `Review: ${question.slice(0, 50)}`,
+          autoArchiveDuration: 1440
+        }).catch(() => {});
 
         return interaction.reply({
           content:
@@ -521,52 +527,21 @@ ${emoji2} | ${text2}`;
             TextInputStyle.Paragraph
           );
 
-      const emoji1 =
+      const answers =
         new TextInputBuilder()
           .setCustomId(
-            'emoji1'
+            'answers'
           )
           .setLabel(
-            'Emoji 1'
+            'Answers (one per line: emoji | text)'
+          )
+          .setPlaceholder(
+`🍕 | Pizza
+🍔 | Burger
+🌮 | Taco`
           )
           .setStyle(
-            TextInputStyle.Short
-          );
-
-      const text1 =
-        new TextInputBuilder()
-          .setCustomId(
-            'text1'
-          )
-          .setLabel(
-            'Text 1'
-          )
-          .setStyle(
-            TextInputStyle.Short
-          );
-
-      const emoji2 =
-        new TextInputBuilder()
-          .setCustomId(
-            'emoji2'
-          )
-          .setLabel(
-            'Emoji 2'
-          )
-          .setStyle(
-            TextInputStyle.Short
-          );
-
-      const text2 =
-        new TextInputBuilder()
-          .setCustomId(
-            'text2'
-          )
-          .setLabel(
-            'Text 2'
-          )
-          .setStyle(
-            TextInputStyle.Short
+            TextInputStyle.Paragraph
           );
 
       modal.addComponents(
@@ -574,16 +549,7 @@ ${emoji2} | ${text2}`;
           .addComponents(question),
 
         new ActionRowBuilder()
-          .addComponents(emoji1),
-
-        new ActionRowBuilder()
-          .addComponents(text1),
-
-        new ActionRowBuilder()
-          .addComponents(emoji2),
-
-        new ActionRowBuilder()
-          .addComponents(text2)
+          .addComponents(answers)
       );
 
       return interaction.showModal(
@@ -668,6 +634,7 @@ ${emoji2} | ${text2}`;
       );
 
       if (adelaideNow > base) {
+
         base.setDate(
           base.getDate() + 1
         );
