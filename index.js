@@ -35,7 +35,7 @@ const QOTD_ROLE_ID = "1479019281126785096";
 // PRESET QOTDS
 // =====================
 const presetQOTDs = [
-  
+
 `"pizza or burger"
 🍕 | Pizza
 🍔 | Burger`,
@@ -50,9 +50,49 @@ const presetQOTDs = [
 ];
 
 // =====================
+// SIMPLE COMMANDS
+// =====================
+const simpleCommands = {
+
+  ping: {
+    message: "Pong!",
+    description: "check if the bot is alive"
+  },
+
+  help: {
+    embed: true,
+    title: "📚 QOTD Bot Commands",
+    color: #A9A9A9,
+
+    message:
+`
+/suggestqotd
+Suggest a QOTD
+
+/qotdqueue
+View your queued QOTDs + posting times
+
+/sendqotd
+Force send a QOTD (owner only)
+
+/help
+Shows this command list
+
+/ping
+Check if the bot is alive
+
+**Unused**
+/qotd
+Old testing command`,
+
+    description: "list all commands"
+  }
+};
+
+// =====================
 // STATE
 // =====================
-let qotdNumber = 20;
+let qotdNumber = 19;
 
 console.log("Bot starting...");
 
@@ -65,30 +105,6 @@ const client = new Client({
     GatewayIntentBits.GuildMessages
   ]
 });
-
-// =====================
-// SIMPLE COMMANDS
-// =====================
-const simpleCommands = {
-  ping: {
-    message: "Pong!",
-    description: "check if the bot is alive"
-  },
-
-
-  help: {
-    message:
-`/suggestqotd: suggest a qotd
-/qotdqueue: check all your submitted qotds and when they will be posted
-/sendqotd: send a qotd(only for owner)
-/help: lists all commands
-/ping: check if the bot is alive
-
--------UNUSED COMMANDS-------
-/qotd: was used to test the bot`,
-    description: "list all the commands(3)"
-  }
-};
 
 // =====================
 // COMMANDS
@@ -124,6 +140,7 @@ const commands = [
 const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 (async () => {
+
   try {
 
     console.log("Registering commands...");
@@ -144,7 +161,7 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
 })();
 
 // =====================
-// FETCH OLDEST MESSAGE
+// GET OLDEST MESSAGE
 // =====================
 async function getOldestMessage(channel) {
 
@@ -194,7 +211,7 @@ async function sendQOTD() {
     let messageToDelete = null;
 
     // =====================
-    // USE SUBMITTED QOTD
+    // REAL SUBMISSION
     // =====================
     if (sorted.length > 0) {
 
@@ -207,7 +224,7 @@ async function sendQOTD() {
     } else {
 
       // =====================
-      // USE PRESET QOTD
+      // PRESET
       // =====================
       content =
         presetQOTDs[
@@ -441,17 +458,26 @@ It is ${position}/${total} in the queue.`,
     // =====================
     // SIMPLE COMMANDS
     // =====================
-    if (
-      simpleCommands[
-        interaction.commandName
-      ]
-    ) {
+    if (simpleCommands[interaction.commandName]) {
 
-      return interaction.reply(
-        simpleCommands[
-          interaction.commandName
-        ].message
-      );
+      const cmd =
+        simpleCommands[interaction.commandName];
+
+      // embed command
+      if (cmd.embed) {
+
+        const embed = new EmbedBuilder()
+          .setTitle(cmd.title || "Command")
+          .setDescription(cmd.message)
+          .setColor(cmd.color || 0xffffff);
+
+        return interaction.reply({
+          embeds: [embed]
+        });
+      }
+
+      // normal command
+      return interaction.reply(cmd.message);
     }
 
     // =====================
