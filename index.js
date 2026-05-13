@@ -8,7 +8,9 @@ const {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
-  ActionRowBuilder
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle
 } = require('discord.js');
 
 // =====================
@@ -20,6 +22,7 @@ const GUILD_ID = process.env.GUILD_ID;
 
 const INPUT_CHANNEL_ID = process.env.INPUT_CHANNEL_ID;
 const OUTPUT_CHANNEL_ID = process.env.OUTPUT_CHANNEL_ID;
+const REVIEW_CHANNEL_ID = process.env.REVIEW_CHANNEL_ID;
 
 // =====================
 // OWNER
@@ -70,7 +73,7 @@ const simpleCommands = {
 Suggest a QOTD
 
 /qotdqueue
-View your queued QOTDs + posting times
+View your QOTDs + statuses
 
 /sendqotd
 Force send a QOTD (owner only)
@@ -80,10 +83,7 @@ Shows this command list
 
 /ping
 Check if the bot is alive
-
-**Unused**
-/qotd
-Old testing command`,
+`,
 
     description: "list all commands"
   }
@@ -159,20 +159,6 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
     console.error(err);
   }
 })();
-
-// =====================
-// GET OLDEST MESSAGE
-// =====================
-async function getOldestMessage(channel) {
-
-  const messages =
-    await channel.messages.fetch({ limit: 100 });
-
-  return [...messages.values()]
-    .sort((a, b) =>
-      a.createdTimestamp - b.createdTimestamp
-    )[0];
-}
 
 // =====================
 // EXTRACT EMOJI
@@ -360,92 +346,126 @@ client.on(
             'text2'
           );
 
-        const inputChannel =
+        const reviewChannel =
           await client.channels.fetch(
-            INPUT_CHANNEL_ID
+            REVIEW_CHANNEL_ID
           );
 
-        const sentMessage =
-          await inputChannel.send(
+        const qotdContent =
 `"${question}" suggested by <@${interaction.user.id}>
 ${emoji1} | ${text1}
-${emoji2} | ${text2}`
-          );
+${emoji2} | ${text2}`;
 
-        // =====================
-        // QUEUE POSITION
-        // =====================
-        const messages =
-          await inputChannel.messages.fetch({
-            limit: 100
+        const embed = new EmbedBuilder()
+          .setTitle("New QOTD Suggestion")
+          .setDescription(qotdContent)
+          .setColor(0xffff00)
+          .setFooter({
+            text: "Status: Pending"
           });
 
-        const sorted = [...messages.values()]
-          .sort((a, b) =>
-            a.createdTimestamp -
-            b.createdTimestamp
-          );
+        const buttons =
+          new ActionRowBuilder()
+            .addComponents(
 
-        const position =
-          sorted.findIndex(
-            m => m.id === sentMessage.id
-          ) + 1;
+              new ButtonBuilder()
+                .setCustomId("accept_qotd")
+                .setLabel("Accept")
+                .setStyle(ButtonStyle.Success),
 
-        const total = sorted.length;
+              new ButtonBuilder()
+                .setCustomId("decline_qotd")
+                .setLabel("Decline")
+                .setStyle(ButtonStyle.Danger)
+            );
 
-        // =====================
-        // TIME CALC
-        // =====================
-        const ADELAIDE_OFFSET =
-          9.5 * 60 * 60 * 1000;
-
-        const now = new Date();
-
-        const adelaideNow =
-          new Date(
-            now.getTime() +
-            ADELAIDE_OFFSET
-          );
-
-        let sendDate =
-          new Date(adelaideNow);
-
-        sendDate.setHours(
-          16,
-          30,
-          0,
-          0
-        );
-
-        if (adelaideNow > sendDate) {
-          sendDate.setDate(
-            sendDate.getDate() + 1
-          );
-        }
-
-        sendDate.setDate(
-          sendDate.getDate() +
-          (position - 1)
-        );
-
-        const unix = Math.floor(
-          (
-            sendDate.getTime() -
-            ADELAIDE_OFFSET
-          ) / 1000
-        );
+        await reviewChannel.send({
+          embeds: [embed],
+          components: [buttons]
+        });
 
         return interaction.reply({
           content:
-`QOTD suggested!
-
-Your QOTD will be sent <t:${unix}:R>
-It is ${position}/${total} in the queue.`,
+            "Your QOTD was submitted for review.",
           ephemeral: true
         });
       }
 
       return;
+    }
+
+    // =====================
+    // BUTTONS
+    // =====================
+    if (interaction.isButton()) {
+
+      if (
+        interaction.user.id !== OWNER_ID
+      ) {
+
+        return interaction.reply({
+          content: "No permission.",
+          ephemeral: true
+        });
+      }
+
+      const embed =
+        interaction.message.embeds[0];
+
+      if (!embed) return;
+
+      const content =
+        embed.description;
+
+      const newEmbed =
+        EmbedBuilder.from(embed);
+
+      // =====================
+      // ACCEPT
+      // =====================
+      if (
+        interaction.customId ===
+        "accept_qotd"
+      ) {
+
+        const inputChannel =
+          await client.channels.fetch(
+            INPUT_CHANNEL_ID
+          );
+
+        await inputChannel.send(content);
+
+        newEmbed.setFooter({
+          text: "Status: Accepted ✅"
+        });
+
+        await interaction.update({
+          embeds: [newEmbed],
+          components: []
+        });
+
+        return;
+      }
+
+      // =====================
+      // DECLINE
+      // =====================
+      if (
+        interaction.customId ===
+        "decline_qotd"
+      ) {
+
+        newEmbed.setFooter({
+          text: "Status: Declined ❌"
+        });
+
+        await interaction.update({
+          embeds: [newEmbed],
+          components: []
+        });
+
+        return;
+      }
     }
 
     // =====================
@@ -587,107 +607,53 @@ It is ${position}/${total} in the queue.`,
       'qotdqueue'
     ) {
 
-      const inputChannel =
+      const reviewChannel =
         await client.channels.fetch(
-          INPUT_CHANNEL_ID
+          REVIEW_CHANNEL_ID
         );
 
       const messages =
-        await inputChannel.messages.fetch({
+        await reviewChannel.messages.fetch({
           limit: 100
         });
 
-      const sorted =
+      const embeds =
         [...messages.values()]
-          .sort((a, b) =>
-            a.createdTimestamp -
-            b.createdTimestamp
-          );
-
-      const yourMessages =
-        sorted
-          .map((m, i) => ({
-            msg: m,
-            index: i + 1
-          }))
-          .filter(x =>
-            x.msg.content.includes(
+          .filter(m =>
+            m.embeds.length > 0 &&
+            m.embeds[0].description?.includes(
               `<@${interaction.user.id}>`
             )
           );
 
-      if (
-        yourMessages.length === 0
-      ) {
+      if (embeds.length === 0) {
 
         return interaction.reply({
           content:
-            "You have no QOTDs in the queue.",
+            "You have no QOTDs.",
           ephemeral: true
         });
       }
 
-      const ADELAIDE_OFFSET =
-        9.5 * 60 * 60 * 1000;
+      const lines = embeds.map((m, i) => {
 
-      const now = new Date();
+        const embed = m.embeds[0];
 
-      const adelaideNow =
-        new Date(
-          now.getTime() +
-          ADELAIDE_OFFSET
-        );
+        const footer =
+          embed.footer?.text ||
+          "Status: Pending";
 
-      let base =
-        new Date(adelaideNow);
+        const title =
+          embed.description
+            .split("\n")[0];
 
-      base.setHours(
-        16,
-        30,
-        0,
-        0
-      );
-
-      if (adelaideNow > base) {
-        base.setDate(
-          base.getDate() + 1
-        );
-      }
-
-      const lines =
-        yourMessages.map(q => {
-
-          const date =
-            new Date(base);
-
-          date.setDate(
-            date.getDate() +
-            (q.index - 1)
-          );
-
-          const unix =
-            Math.floor(
-              (
-                date.getTime() -
-                ADELAIDE_OFFSET
-              ) / 1000
-            );
-
-          const title =
-            q.msg.content
-              .split("\n")[0]
-              .replaceAll(
-                `suggested by <@${interaction.user.id}>`,
-                "Approved✅"
-              );
-
-          return `#${q.index} • <t:${unix}:R>
-${title}`;
-        });
+        return `#${i + 1}
+${title}
+${footer}`;
+      });
 
       return interaction.reply({
-        content:
-          lines.join("\n\n"),
+        content: lines.join("\n\n"),
         ephemeral: true
       });
     }
