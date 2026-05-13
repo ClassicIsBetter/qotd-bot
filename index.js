@@ -61,7 +61,7 @@ const simpleCommands = {
 
   help: {
     embed: true,
-    title: "📚 QOTD Bot Commands",
+    title: "List Of Commands",
     color: 0xA9A9A9,
 
     message:
