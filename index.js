@@ -1,5 +1,3 @@
-i have improved it abit and added moderation, make it so it will auto add a thread to the message in the review channel(also print when it sends a qotd)
-
 const {
   Client,
   GatewayIntentBits,
