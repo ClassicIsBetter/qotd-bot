@@ -73,7 +73,7 @@ const simpleCommands = {
 Suggest a QOTD
 
 /qotdqueue
-View your QOTDs + statuses
+View your queued QOTDs + statuses
 
 /sendqotd
 Force send a QOTD (owner only)
@@ -196,9 +196,6 @@ async function sendQOTD() {
     let content;
     let messageToDelete = null;
 
-    // =====================
-    // REAL SUBMISSION
-    // =====================
     if (sorted.length > 0) {
 
       const oldest = sorted[0];
@@ -209,9 +206,6 @@ async function sendQOTD() {
 
     } else {
 
-      // =====================
-      // PRESET
-      // =====================
       content =
         presetQOTDs[
           Math.floor(
@@ -483,7 +477,6 @@ ${emoji2} | ${text2}`;
       const cmd =
         simpleCommands[interaction.commandName];
 
-      // embed command
       if (cmd.embed) {
 
         const embed = new EmbedBuilder()
@@ -496,7 +489,6 @@ ${emoji2} | ${text2}`;
         });
       }
 
-      // normal command
       return interaction.reply(cmd.message);
     }
 
@@ -612,13 +604,30 @@ ${emoji2} | ${text2}`;
           REVIEW_CHANNEL_ID
         );
 
-      const messages =
+      const inputChannel =
+        await client.channels.fetch(
+          INPUT_CHANNEL_ID
+        );
+
+      const reviewMessages =
         await reviewChannel.messages.fetch({
           limit: 100
         });
 
-      const embeds =
-        [...messages.values()]
+      const queueMessages =
+        await inputChannel.messages.fetch({
+          limit: 100
+        });
+
+      const sortedQueue =
+        [...queueMessages.values()]
+          .sort((a, b) =>
+            a.createdTimestamp -
+            b.createdTimestamp
+          );
+
+      const yourMessages =
+        [...reviewMessages.values()]
           .filter(m =>
             m.embeds.length > 0 &&
             m.embeds[0].description?.includes(
@@ -626,7 +635,9 @@ ${emoji2} | ${text2}`;
             )
           );
 
-      if (embeds.length === 0) {
+      if (
+        yourMessages.length === 0
+      ) {
 
         return interaction.reply({
           content:
@@ -635,25 +646,92 @@ ${emoji2} | ${text2}`;
         });
       }
 
-      const lines = embeds.map((m, i) => {
+      const ADELAIDE_OFFSET =
+        9.5 * 60 * 60 * 1000;
 
-        const embed = m.embeds[0];
+      const now = new Date();
 
-        const footer =
-          embed.footer?.text ||
-          "Status: Pending";
+      const adelaideNow =
+        new Date(
+          now.getTime() +
+          ADELAIDE_OFFSET
+        );
 
-        const title =
-          embed.description
-            .split("\n")[0];
+      let base =
+        new Date(adelaideNow);
 
-        return `#${i + 1}
-${title}
+      base.setHours(
+        16,
+        30,
+        0,
+        0
+      );
+
+      if (adelaideNow > base) {
+        base.setDate(
+          base.getDate() + 1
+        );
+      }
+
+      const lines =
+        yourMessages.map(q => {
+
+          const embed =
+            q.embeds[0];
+
+          const footer =
+            embed.footer?.text ||
+            "Status: Pending";
+
+          const title =
+            embed.description
+              .split("\n")[0];
+
+          // =====================
+          // ACCEPTED
+          // =====================
+          if (
+            footer.includes("Accepted")
+          ) {
+
+            const queueIndex =
+              sortedQueue.findIndex(m =>
+                m.content ===
+                embed.description
+              );
+
+            if (queueIndex !== -1) {
+
+              const date =
+                new Date(base);
+
+              date.setDate(
+                date.getDate() +
+                queueIndex
+              );
+
+              const unix =
+                Math.floor(
+                  (
+                    date.getTime() -
+                    ADELAIDE_OFFSET
+                  ) / 1000
+                );
+
+              return `${title}
+${footer}
+Will send <t:${unix}:R>
+Queue Position: #${queueIndex + 1}`;
+            }
+          }
+
+          return `${title}
 ${footer}`;
-      });
+        });
 
       return interaction.reply({
-        content: lines.join("\n\n"),
+        content:
+          lines.join("\n\n"),
         ephemeral: true
       });
     }
