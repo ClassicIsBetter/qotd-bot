@@ -677,8 +677,8 @@ It is ${position}/${total} in the queue.`,
             q.msg.content
               .split("\n")[0]
               .replaceAll(
-                `<@${interaction.user.id}>`,
-                "@you"
+                `suggested by <@${interaction.user.id}>`,
+                "Approved✅"
               );
 
           return `#${q.index} • <t:${unix}:R>
