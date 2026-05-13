@@ -79,8 +79,13 @@ const simpleCommands = {
   help: {
     message:
 `/suggestqotd: suggest a qotd
+/qotdqueue: check all your submitted qotds and when they will be posted
 /sendqotd: send a qotd(only for owner)
-/help: lists all commands`,
+/help: lists all commands
+/ping: check if the bot is alive
+
+-------UNUSED COMMANDS-------
+/qotd: was used to test the bot`,
     description: "list all the commands(3)"
   }
 };
