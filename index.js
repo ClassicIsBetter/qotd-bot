@@ -95,7 +95,7 @@ Check if the bot is alive
 // =====================
 // STATE
 // =====================
-let qotdNumber = 21;
+let qotdNumber = 22;
 
 console.log("Bot starting...");
 
