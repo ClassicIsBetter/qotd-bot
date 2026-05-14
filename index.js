@@ -604,7 +604,7 @@ ${answers}`;
             'answers'
           )
           .setLabel(
-            'Answers (one per line: emoji | text)'
+            'Answers(Example: 🍔 | Burger)(Custom emojis are NOT allowed)'
           )
           .setPlaceholder(
 `🍕 | Pizza
