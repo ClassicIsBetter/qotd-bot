@@ -981,7 +981,7 @@ ${renderSnake(game)}`,
 
       return interaction.reply({
         content:
-          "Queue system still here 👍",
+          "qotd queue system currently down",
         ephemeral: true
       });
     }
