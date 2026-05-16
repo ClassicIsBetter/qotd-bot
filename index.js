@@ -1052,7 +1052,7 @@ if (interaction.commandName === "ms") {
   const game =
     minesweeperGames.get(msg.id);
 
-  const game = minesweeperGames.get(interaction.channel.id);
+  let game = minesweeperGames.get(interaction.channel.id);
 
 if (!game) {
   return interaction.reply({
