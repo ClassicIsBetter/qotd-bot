@@ -1049,10 +1049,9 @@ if (interaction.commandName === "ms") {
   const msg =
     interaction.channel.lastMessage;
 
-  const game =
-    minesweeperGames.get(msg.id);
+  const game = minesweeperGames.get(interaction.channel.id);
 
-  let game = minesweeperGames.get(interaction.channel.id);
+  //let game = minesweeperGames.get(interaction.channel.id);
 
 if (!game) {
   return interaction.reply({
