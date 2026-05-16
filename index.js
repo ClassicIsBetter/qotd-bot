@@ -789,6 +789,8 @@ client.on(
             REVIEW_CHANNEL_ID
           );
 
+        
+
         const qotdContent =
 `"${question}" suggested by <@${interaction.user.id}>
 ${answers}`;
@@ -853,6 +855,96 @@ ${answers}`;
         });
       }
 
+      if (interaction.isModalSubmit()) {
+
+  if (interaction.customId === "ms_modal") {
+
+    const cell =
+      interaction.fields
+        .getTextInputValue("cell")
+        .toLowerCase();
+
+    const game =
+      minesweeperGames.get(
+        interaction.channel.id
+      );
+
+    if (!game) {
+      return interaction.reply({
+        content: "No active Minesweeper game found.",
+        ephemeral: true
+      });
+    }
+
+    const letters = "abcdef";
+
+    const y = letters.indexOf(cell[0]);
+    const x = parseInt(cell.slice(1)) - 1;
+
+    if (
+      y < 0 ||
+      x < 0 ||
+      y >= game.size ||
+      x >= game.size
+    ) {
+      return interaction.reply({
+        content: "Invalid cell.",
+        ephemeral: true
+      });
+    }
+
+    const tile = game.board[y][x];
+
+    // 💥 bomb hit
+    if (tile.bomb) {
+
+      tile.revealed = true;
+
+      // reveal all bombs
+      for (let yy = 0; yy < game.size; yy++) {
+        for (let xx = 0; xx < game.size; xx++) {
+          if (game.board[yy][xx].bomb) {
+            game.board[yy][xx].revealed = true;
+          }
+        }
+      }
+
+      minesweeperGames.delete(interaction.channel.id);
+    }
+
+    // 🌊 safe tile
+    else {
+
+      if (tile.number === 0) {
+        floodFill(game, x, y);
+      } else {
+        tile.revealed = true;
+      }
+    }
+
+    // 🧠 EDIT THE ORIGINAL MESSAGE (IMPORTANT PART)
+    const message =
+      await interaction.channel.messages.fetch(
+        interaction.message.id
+      ).catch(() => null);
+
+    if (!message) {
+      return interaction.reply({
+        content: "Game message not found.",
+        ephemeral: true
+      });
+    }
+
+    return message.edit({
+      content:
+`# Minesweeper
+
+Click "Reveal Cell" to play
+
+${renderMinesweeper(game)}`
+    });
+  }
+}
       return;
     }
 
@@ -946,6 +1038,29 @@ ${renderSnake(game)}`,
         snakeButtons()
     });
   }
+
+  //minesweepper
+  if (interaction.isButton()) {
+
+  if (interaction.customId === "ms_reveal") {
+
+    const modal = new ModalBuilder()
+      .setCustomId("ms_modal")
+      .setTitle("Reveal Minesweeper Cell");
+
+    const cellInput = new TextInputBuilder()
+      .setCustomId("cell")
+      .setLabel("Enter cell (example: a5)")
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+
+    const row = new ActionRowBuilder().addComponents(cellInput);
+
+    modal.addComponents(row);
+
+    return interaction.showModal(modal);
+  }
+}
 
   // =====================
   // QOTD BUTTONS
@@ -1066,6 +1181,8 @@ ${renderSnake(game)}`,
         cmd.message
       );
     }
+
+    
 
     // suggestqotd
     if (
@@ -1384,16 +1501,25 @@ ${renderSnake(game)}`,
   // =====================
   if (interaction.commandName === "minesweeper") {
 
+    
   const game = createMinesweeper(6);
+
+    const row = new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+    .setCustomId("ms_reveal")
+    .setLabel("Reveal Cell")
+    .setStyle(ButtonStyle.Primary)
+);
 
   await interaction.reply({
     content:
 `# Minesweeper
 
-Use command /ms {cell} to reveal cell
+Use the button to reveal a cell
 
 ${renderMinesweeper(game)}`
   });
+
 
   // SAVE GAME
   minesweeperGames.set(
