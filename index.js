@@ -1261,26 +1261,28 @@ ${renderSnake(game)}`,
 
       await sendQOTD();
     }
-  }
-  //minesweper
+  
+  // =====================
+  // MINESWEEPER (MUST BE HERE)
+  // =====================
   if (interaction.commandName === "minesweeper") {
 
-  const game = createMinesweeper(6);
+    const game = createMinesweeper(6);
 
-  const msg = await interaction.reply({
-    content:
+    const msg = await interaction.reply({
+      content:
 `# Minesweeper
 
 Use /ms a5 to reveal tiles
 
 ${renderMinesweeper(game)}`,
-    fetchReply: true
-  });
+      fetchReply: true
+    });
 
-  minesweeperGames.set(msg.id, game);
-}
-);
+    minesweeperGames.set(msg.id, game);
+  }
 
+}); // <-- ONLY ONE CLOSING BRACKET HERE
 
 
 // =====================
