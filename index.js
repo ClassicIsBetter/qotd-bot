@@ -287,46 +287,89 @@ function renderSnake(game) {
 // MINESWEEPER CORE
 // =====================
 
-function createMinesweeper(size = 5) {
+function createMinesweeper(size) {
 
-  const game = {
-    size,
-    bombs: new Set(),
-    revealed: new Set(),
-    over: false
-  };
+  const board = [];
 
-  // place bombs
-  const bombCount = 5;
+  // create tiles
+  for (let y = 0; y < size; y++) {
 
-  while (game.bombs.size < bombCount) {
-    const x = Math.floor(Math.random() * size);
-    const y = Math.floor(Math.random() * size);
-    game.bombs.add(`${x},${y}`);
-  }
+    board[y] = [];
 
-  return game;
-}
+    for (let x = 0; x < size; x++) {
 
-// count bombs
-function countBombs(game, x, y) {
-
-  let count = 0;
-
-  for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) {
-
-      if (dx === 0 && dy === 0) continue;
-
-      if (game.bombs.has(`${x + dx},${y + dy}`)) {
-        count++;
-      }
+      board[y][x] = {
+        bomb: false,
+        revealed: false,
+        number: 0
+      };
     }
   }
 
-  return count;
-}
+  // place bombs
+  let bombsPlaced = 0;
 
+  while (bombsPlaced < 6) {
+
+    const x =
+      Math.floor(
+        Math.random() * size
+      );
+
+    const y =
+      Math.floor(
+        Math.random() * size
+      );
+
+    if (!board[y][x].bomb) {
+
+      board[y][x].bomb = true;
+
+      bombsPlaced++;
+    }
+  }
+
+  // calculate numbers
+  for (let y = 0; y < size; y++) {
+
+    for (let x = 0; x < size; x++) {
+
+      if (board[y][x].bomb)
+        continue;
+
+      let count = 0;
+
+      for (let dy = -1; dy <= 1; dy++) {
+
+        for (let dx = -1; dx <= 1; dx++) {
+
+          if (dx === 0 && dy === 0)
+            continue;
+
+          const nx = x + dx;
+          const ny = y + dy;
+
+          if (
+            nx >= 0 &&
+            ny >= 0 &&
+            nx < size &&
+            ny < size &&
+            board[ny][nx].bomb
+          ) {
+            count++;
+          }
+        }
+      }
+
+      board[y][x].number = count;
+    }
+  }
+
+  return {
+    size,
+    board
+  };
+}
 // flood fill
 function floodFill(game, x, y) {
 
