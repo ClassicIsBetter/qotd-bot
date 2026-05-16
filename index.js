@@ -104,6 +104,7 @@ let qotdNumber = 24;
 // SNAKE GAMES
 // =====================
 const snakeGames = new Map();
+const minesweeperGames = new Map();
 
 console.log("Bot starting...");
 
@@ -159,6 +160,21 @@ const commands = [
     .setName('snake')
     .setDescription('Play snake')
     .toJSON()
+
+  new SlashCommandBuilder()
+  .setName('minesweeper')
+  .setDescription('Play Minesweeper')
+  .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName('ms')
+    .setDescription('Reveal a tile (example: a5)')
+    .addStringOption(opt =>
+      opt.setName('cell')
+        .setDescription('Example: a5')
+        .setRequired(true)
+    )
+  .toJSON(),
 ];
 
 // =====================
@@ -269,6 +285,105 @@ function renderSnake(game) {
   }
 
   return grid.join("\n");
+}
+
+// =====================
+// MINESWEEPER CORE
+// =====================
+
+function createMinesweeper(size = 6) {
+
+  const bombs = new Set();
+  const revealed = new Set();
+
+  while (bombs.size < Math.floor(size * size * 0.2)) {
+
+    const x = Math.floor(Math.random() * size);
+    const y = Math.floor(Math.random() * size);
+
+    bombs.add(`${x},${y}`);
+  }
+
+  return {
+    size,
+    bombs,
+    revealed,
+    over: false
+  };
+}
+
+// count bombs
+function countBombs(game, x, y) {
+
+  let count = 0;
+
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+
+      if (dx === 0 && dy === 0) continue;
+
+      if (game.bombs.has(`${x + dx},${y + dy}`)) {
+        count++;
+      }
+    }
+  }
+
+  return count;
+}
+
+// flood fill
+function floodFill(game, x, y) {
+
+  const key = `${x},${y}`;
+
+  if (
+    x < 0 || y < 0 ||
+    x >= game.size || y >= game.size
+  ) return;
+
+  if (game.revealed.has(key)) return;
+  if (game.bombs.has(key)) return;
+
+  game.revealed.add(key);
+
+  if (countBombs(game, x, y) !== 0) return;
+
+  floodFill(game, x + 1, y);
+  floodFill(game, x - 1, y);
+  floodFill(game, x, y + 1);
+  floodFill(game, x, y - 1);
+}
+
+// render
+function renderMinesweeper(game, revealAll = false) {
+
+  let out = "";
+
+  for (let y = 0; y < game.size; y++) {
+
+    for (let x = 0; x < game.size; x++) {
+
+      const key = `${x},${y}`;
+
+      if (!game.revealed.has(key) && !revealAll) {
+        out += "🟫";
+        continue;
+      }
+
+      if (game.bombs.has(key)) {
+        out += "💣";
+        continue;
+      }
+
+      const c = countBombs(game, x, y);
+
+      out += c === 0 ? "⬜" : `${c}️⃣`;
+    }
+
+    out += "\n";
+  }
+
+  return out;
 }
 // =====================
 // MOVE SNAKE
@@ -653,6 +768,7 @@ ${answers}`;
       return;
     }
 
+
     // =====================
 // BUTTONS
 // =====================
@@ -925,6 +1041,76 @@ ${renderSnake(game)}`,
       );
     }
 
+    // =====================
+// MINESWEEPER
+// =====================
+if (interaction.commandName === "ms") {
+
+  const input =
+    interaction.options.getString("cell");
+
+  const msg =
+    interaction.channel.lastMessage;
+
+  const game =
+    minesweeperGames.get(msg.id);
+
+  if (!game) {
+    return interaction.reply({
+      content: "No active Minesweeper game found.",
+      ephemeral: true
+    });
+  }
+
+  const x =
+    input.toLowerCase().charCodeAt(0) - 97;
+
+  const y =
+    parseInt(input.slice(1)) - 1;
+
+  const key = `${x},${y}`;
+
+  if (game.revealed.has(key)) {
+    return interaction.reply({
+      content: "Already revealed.",
+      ephemeral: true
+    });
+  }
+
+  // 💣 BOMB
+  if (game.bombs.has(key)) {
+
+    game.over = true;
+
+    return interaction.reply({
+      content:
+`💥 BOOM
+
+${renderMinesweeper(game, true)}`
+    });
+  }
+
+  // 🌊 FLOOD FILL
+  floodFill(game, x, y);
+
+  // 🏆 WIN CHECK
+  const safeTiles =
+    game.size * game.size - game.bombs.size;
+
+  if (game.revealed.size >= safeTiles) {
+
+    return interaction.reply({
+      content:
+`🎉 YOU WIN
+
+${renderMinesweeper(game, true)}`
+    });
+  }
+
+  return interaction.reply({
+    content: renderMinesweeper(game)
+  });
+}
     // snake
     if (
       interaction.commandName ===
@@ -1080,7 +1266,29 @@ ${renderSnake(game)}`,
       await sendQOTD();
     }
   }
+  
 );
+
+// =====================
+// MINESWEEPER START
+// =====================
+if (interaction.commandName === "minesweeper") {
+
+  const game = createMinesweeper(6);
+
+  const msg = await interaction.reply({
+    content:
+`# Minesweeper
+
+Use /ms a5 to reveal tiles
+
+${renderMinesweeper(game)}`,
+    fetchReply: true
+  });
+
+  minesweeperGames.set(msg.id, game);
+}
+
 
 // =====================
 // LOGIN
