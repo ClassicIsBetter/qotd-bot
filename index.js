@@ -1517,8 +1517,11 @@ ${renderMinesweeper(game)}`,
     fetchReply: true
   });
 
-  minesweeperGames.set(interaction.channel.id, game);
-}
+      minesweeperGames.set(interaction.channel.id, game);
+    }
+
+  }); // 👈 closes: client.on("interactionCreate", async (interaction) => {
+
 //}  the silly bracket, yes he has a name
 //});
 
