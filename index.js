@@ -351,26 +351,27 @@ function floodFill(game, x, y) {
 }
 
 // render
-function renderMinesweeper(game, revealAll = false) {
+function renderMinesweeper(game) {
 
-  const letters = ["A", "B", "C", "D", "E", "F"];
+  const letters = ["A","B","C","D","E","F"];
 
-  let output = "   1 2 3 4 5\n";
+  let output = "   ";
+
+  for (let x = 1; x <= game.size; x++) {
+    output += x + " ";
+  }
+
+  output += "\n";
 
   for (let y = 0; y < game.size; y++) {
 
-    let row = letters[y] + " ";
+    let row = letters[y] + "  "; // extra space fixes alignment
 
     for (let x = 0; x < game.size; x++) {
 
       const key = `${x},${y}`;
 
-      const isBomb = game.bombs.has(key);
-      const isRevealed = game.revealed.has(key);
-
-      if (revealAll && isBomb) {
-        row += "💣 ";
-      } else if (isRevealed) {
+      if (game.revealed.has(key)) {
         row += "⬜ ";
       } else {
         row += "🟦 ";
@@ -380,7 +381,7 @@ function renderMinesweeper(game, revealAll = false) {
     output += row + "\n";
   }
 
-  return "```\n" + output + "\n```";
+  return "```" + output + "```";
 }
 // =====================
 // MOVE SNAKE
