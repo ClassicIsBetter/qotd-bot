@@ -1277,20 +1277,23 @@ ${renderSnake(game)}`,
   // =====================
   if (interaction.commandName === "minesweeper") {
 
-    const game = createMinesweeper(6);
+  const game = createMinesweeper(6);
 
-    const msg = await interaction.reply({
-      content:
+  await interaction.reply({
+    content:
 `# Minesweeper
 
 Use command /ms {cell} to reveal cell
 
-${renderMinesweeper(game)}`,
-      fetchReply: true
-    });
+${renderMinesweeper(game)}`
+  });
 
-    minesweeperGames.set(interaction.channel.id, game);
-  }
+  // SAVE GAME
+  minesweeperGames.set(
+    interaction.channel.id,
+    game
+  );
+}
 
 }); // <-- ONLY ONE CLOSING BRACKET HERE
 
