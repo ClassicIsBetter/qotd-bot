@@ -1525,7 +1525,7 @@ ${renderMinesweeper(game)}`,
 minesweeperGames.set(interaction.channel.id, game);
 
 
-}); // <-- ONLY ONE CLOSING BRACKET HERE
+} // the silly bracket, yes he has a name
 
 
 // =====================
