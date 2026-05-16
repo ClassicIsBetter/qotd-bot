@@ -367,8 +367,16 @@ function snakeButtons() {
       .addComponents(
 
         new ButtonBuilder()
+          .setCustomId("snake_blank")
+          .setLabel("⬛")
+          .setStyle(
+            ButtonStyle.Secondary
+          )
+          .setDisabled(true),
+
+        new ButtonBuilder()
           .setCustomId("snake_up")
-          .setLabel("⬆")
+          .setLabel("⬆️")
           .setStyle(
             ButtonStyle.Primary
           )
@@ -379,28 +387,27 @@ function snakeButtons() {
 
         new ButtonBuilder()
           .setCustomId("snake_left")
-          .setLabel("⬅")
+          .setLabel("⬅️")
           .setStyle(
             ButtonStyle.Primary
           ),
 
         new ButtonBuilder()
           .setCustomId("snake_down")
-          .setLabel("⬇")
+          .setLabel("⬇️")
           .setStyle(
             ButtonStyle.Primary
           ),
 
         new ButtonBuilder()
           .setCustomId("snake_right")
-          .setLabel("➡")
+          .setLabel("➡️")
           .setStyle(
             ButtonStyle.Primary
           )
       )
   ];
 }
-
 // =====================
 // POST QOTD
 // =====================
@@ -647,151 +654,172 @@ ${answers}`;
     }
 
     // =====================
-    // BUTTONS
-    // =====================
-    if (interaction.isButton()) {
+// BUTTONS
+// =====================
+if (interaction.isButton()) {
 
-      // snake buttons
-      if (
-        interaction.customId.startsWith(
-          "snake_"
-        )
-      ) {
+  // =====================
+  // SNAKE BUTTONS
+  // =====================
+  if (
+    !interaction.customId.startsWith(
+      "snake_"
+    )
+  ) {
 
-        const game =
-          snakeGames.get(
-            interaction.message.id
-          );
+    // continue to qotd buttons
 
-        if (!game) {
+  } else {
 
-          return interaction.reply({
-            content:
-              "Game expired.",
-            ephemeral: true
-          });
-        }
+    // blank button
+    if (
+      interaction.customId ===
+      "snake_blank"
+    ) {
 
-        if (
-          interaction.user.id !==
-          game.userId
-        ) {
+      return interaction.deferUpdate();
+    }
 
-          return interaction.reply({
-            content:
-              "This isn't your game.",
-            ephemeral: true
-          });
-        }
+    const game =
+      snakeGames.get(
+        interaction.message.id
+      );
 
-        const direction =
-          interaction.customId.replace(
-            "snake_",
-            ""
-          );
+    if (!game) {
 
-        game.direction =
-          direction;
+      return interaction.reply({
+        content:
+          "Game expired.",
+        ephemeral: true
+      });
+    }
 
-        moveSnake(game);
+    if (
+      interaction.user.id !==
+      game.userId
+    ) {
 
-        if (game.over) {
+      return interaction.reply({
+        content:
+          "This isn't your game.",
+        ephemeral: true
+      });
+    }
 
-          return interaction.update({
-            content:
+    const direction =
+      interaction.customId.replace(
+        "snake_",
+        ""
+      );
+
+    game.direction =
+      direction;
+
+    moveSnake(game);
+
+    // game over
+    if (game.over) {
+
+      return interaction.update({
+        content:
 `# Game Over
 
 Score: ${game.snake.length - 1}
 
 ${renderSnake(game)}`,
-            components: []
-          });
-        }
+        components: []
+      });
+    }
 
-        return interaction.update({
-          content:
+    return interaction.update({
+      content:
 `# Snake
 
 Score: ${game.snake.length - 1}
 
 ${renderSnake(game)}`,
-          components:
-            snakeButtons()
-        });
-      }
+      components:
+        snakeButtons()
+    });
+  }
 
-      // qotd buttons
-      if (
-        interaction.user.id !==
-        OWNER_ID
-      ) {
+  // =====================
+  // QOTD BUTTONS
+  // =====================
+  if (
+    interaction.user.id !==
+    OWNER_ID
+  ) {
 
-        return interaction.reply({
-          content:
-            "No permission.",
-          ephemeral: true
-        });
-      }
+    return interaction.reply({
+      content:
+        "No permission.",
+      ephemeral: true
+    });
+  }
 
-      const embed =
-        interaction.message.embeds[0];
+  const embed =
+    interaction.message.embeds[0];
 
-      if (!embed) return;
+  if (!embed) return;
 
-      const content =
-        embed.description;
+  const content =
+    embed.description;
 
-      const newEmbed =
-        EmbedBuilder.from(embed);
+  const newEmbed =
+    EmbedBuilder.from(embed);
 
-      // accept
-      if (
-        interaction.customId ===
-        "accept_qotd"
-      ) {
+  // =====================
+  // ACCEPT
+  // =====================
+  if (
+    interaction.customId ===
+    "accept_qotd"
+  ) {
 
-        const inputChannel =
-          await client.channels.fetch(
-            INPUT_CHANNEL_ID
-          );
+    const inputChannel =
+      await client.channels.fetch(
+        INPUT_CHANNEL_ID
+      );
 
-        await inputChannel.send(
-          content
-        );
+    await inputChannel.send(
+      content
+    );
 
-        newEmbed.setFooter({
-          text:
-            "Status: Accepted ✅"
-        });
+    newEmbed.setFooter({
+      text:
+        "Status: Accepted ✅"
+    });
 
-        await interaction.update({
-          embeds: [newEmbed],
-          components: []
-        });
+    await interaction.update({
+      embeds: [newEmbed],
+      components: []
+    });
 
-        return;
-      }
+    return;
+  }
 
-      // decline
-      if (
-        interaction.customId ===
-        "decline_qotd"
-      ) {
+  // =====================
+  // DECLINE
+  // =====================
+  if (
+    interaction.customId ===
+    "decline_qotd"
+  ) {
 
-        newEmbed.setFooter({
-          text:
-            "Status: Declined ❌"
-        });
+    newEmbed.setFooter({
+      text:
+        "Status: Declined ❌"
+    });
 
-        await interaction.update({
-          embeds: [newEmbed],
-          components: []
-        });
+    await interaction.update({
+      embeds: [newEmbed],
+      components: []
+    });
 
-        return;
-      }
-    }
-
+    return;
+  }
+}
     // =====================
     // CHAT COMMANDS
     // =====================
