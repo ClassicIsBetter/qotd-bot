@@ -1148,67 +1148,84 @@ if (interaction.commandName === "ms") {
     return interaction.reply({
       content:
         "No active Minesweeper game found.",
-      flags: 64
+      ephemeral: true
     });
   }
 
-  const cell =
+  const input =
     interaction.options
       .getString("cell")
-      .toUpperCase();
+      .toLowerCase();
 
-  const letters = "ABCDEF";
-
-  const rowLetter = cell[0];
-
-  const colNumber =
-    parseInt(cell.slice(1));
+  const letters = "abcdef";
 
   const y =
-    letters.indexOf(rowLetter);
+    letters.indexOf(input[0]);
 
   const x =
-    colNumber - 1;
+    parseInt(input.slice(1)) - 1;
 
   if (
+    y < 0 ||
     x < 0 ||
     x >= game.size ||
-    y < 0 ||
     y >= game.size
   ) {
 
     return interaction.reply({
       content:
         "Invalid cell.",
-      flags: 64
+      ephemeral: true
     });
   }
 
-  const key = `${x},${y}`;
+  const tile =
+    game.board[y][x];
 
-  // bomb hit
-  if (game.bombs.has(key)) {
+  // bomb
+  if (tile.bomb) {
 
-    game.over = true;
+    tile.revealed = true;
 
-    game.revealed.add(key);
+    // reveal all bombs
+    for (let yy = 0; yy < game.size; yy++) {
+
+      for (let xx = 0; xx < game.size; xx++) {
+
+        if (
+          game.board[yy][xx].bomb
+        ) {
+          game.board[yy][xx]
+            .revealed = true;
+        }
+      }
+    }
+
+    minesweeperGames.delete(
+      interaction.channel.id
+    );
 
     return interaction.reply({
       content:
 `💥 BOOM!
 
-${renderMinesweeper(game, true)}`
+${renderMinesweeper(game)}`
     });
   }
 
-  // normal reveal
-  game.revealed.add(key);
+  // flood fill
+  if (tile.number === 0) {
+
+    floodFill(game, x, y);
+
+  } else {
+
+    tile.revealed = true;
+  }
 
   return interaction.reply({
     content:
-`# Minesweeper
-
-${renderMinesweeper(game)}`
+      renderMinesweeper(game)
   });
 }
     // snake
