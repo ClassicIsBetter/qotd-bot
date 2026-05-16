@@ -287,25 +287,25 @@ function renderSnake(game) {
 // MINESWEEPER CORE
 // =====================
 
-function createMinesweeper(size = 6) {
+function createMinesweeper(size = 5) {
 
-  const bombs = new Set();
-  const revealed = new Set();
-
-  while (bombs.size < Math.floor(size * size * 0.2)) {
-
-    const x = Math.floor(Math.random() * size);
-    const y = Math.floor(Math.random() * size);
-
-    bombs.add(`${x},${y}`);
-  }
-
-  return {
+  const game = {
     size,
-    bombs,
-    revealed,
+    bombs: new Set(),
+    revealed: new Set(),
     over: false
   };
+
+  // place bombs
+  const bombCount = 5;
+
+  while (game.bombs.size < bombCount) {
+    const x = Math.floor(Math.random() * size);
+    const y = Math.floor(Math.random() * size);
+    game.bombs.add(`${x},${y}`);
+  }
+
+  return game;
 }
 
 // count bombs
@@ -353,33 +353,34 @@ function floodFill(game, x, y) {
 // render
 function renderMinesweeper(game, revealAll = false) {
 
-  let out = "";
+  const letters = ["A", "B", "C", "D", "E", "F"];
+
+  let output = "   1 2 3 4 5\n";
 
   for (let y = 0; y < game.size; y++) {
+
+    let row = letters[y] + " ";
 
     for (let x = 0; x < game.size; x++) {
 
       const key = `${x},${y}`;
 
-      if (!game.revealed.has(key) && !revealAll) {
-        out += "🟫";
-        continue;
+      const isBomb = game.bombs.has(key);
+      const isRevealed = game.revealed.has(key);
+
+      if (revealAll && isBomb) {
+        row += "💣 ";
+      } else if (isRevealed) {
+        row += "⬜ ";
+      } else {
+        row += "🟦 ";
       }
-
-      if (game.bombs.has(key)) {
-        out += "💣";
-        continue;
-      }
-
-      const c = countBombs(game, x, y);
-
-      out += c === 0 ? "⬜" : `${c}️⃣`;
     }
 
-    out += "\n";
+    output += row + "\n";
   }
 
-  return out;
+  return "```\n" + output + "\n```";
 }
 // =====================
 // MOVE SNAKE
@@ -1273,13 +1274,13 @@ ${renderSnake(game)}`,
       content:
 `# Minesweeper
 
-Use /ms a5 to reveal tiles
+Use command /ms {cell} to reveal cell
 
 ${renderMinesweeper(game)}`,
       fetchReply: true
     });
 
-    minesweeperGames.set(msg.id, game);
+    minesweeperGames.set(interaction.channel.id, game);
   }
 
 }); // <-- ONLY ONE CLOSING BRACKET HERE
