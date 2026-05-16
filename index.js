@@ -79,7 +79,10 @@ View your queued QOTDs + statuses
 Force send oldest QOTD
 
 /forceqotd
-Force send a specific queue number
+Force send a specific queued QOTD
+
+/snake
+Play snake
 
 /help
 Shows this command list
@@ -95,7 +98,12 @@ Check if the bot is alive
 // =====================
 // STATE
 // =====================
-let qotdNumber = 22;
+let qotdNumber = 19;
+
+// =====================
+// SNAKE GAMES
+// =====================
+const snakeGames = new Map();
 
 console.log("Bot starting...");
 
@@ -145,6 +153,11 @@ const commands = [
   new SlashCommandBuilder()
     .setName('qotdqueue')
     .setDescription('View your queued QOTDs')
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName('snake')
+    .setDescription('Play snake')
     .toJSON()
 ];
 
@@ -187,6 +200,183 @@ function extractEmojis(lines) {
 }
 
 // =====================
+// SNAKE RENDER
+// =====================
+function renderSnake(game) {
+
+  const size = 8;
+
+  let grid = [];
+
+  for (let y = 0; y < size; y++) {
+
+    let row = [];
+
+    for (let x = 0; x < size; x++) {
+
+      if (
+        x === game.apple.x &&
+        y === game.apple.y
+      ) {
+
+        row.push("🍎");
+        continue;
+      }
+
+      const snakePart =
+        game.snake.find(
+          s =>
+            s.x === x &&
+            s.y === y
+        );
+
+      if (snakePart) {
+
+        row.push("🟩");
+        continue;
+      }
+
+      row.push("⬛");
+    }
+
+    grid.push(row.join(""));
+  }
+
+  return grid.join("\n");
+}
+
+// =====================
+// MOVE SNAKE
+// =====================
+function moveSnake(game) {
+
+  const head = {
+    ...game.snake[0]
+  };
+
+  if (game.direction === "up")
+    head.y--;
+
+  if (game.direction === "down")
+    head.y++;
+
+  if (game.direction === "left")
+    head.x--;
+
+  if (game.direction === "right")
+    head.x++;
+
+  // wall collision
+  if (
+    head.x < 0 ||
+    head.y < 0 ||
+    head.x >= 8 ||
+    head.y >= 8
+  ) {
+
+    game.over = true;
+    return;
+  }
+
+  // self collision
+  if (
+    game.snake.some(
+      s =>
+        s.x === head.x &&
+        s.y === head.y
+    )
+  ) {
+
+    game.over = true;
+    return;
+  }
+
+  game.snake.unshift(head);
+
+  // apple
+  if (
+    head.x === game.apple.x &&
+    head.y === game.apple.y
+  ) {
+
+    let valid = false;
+
+    while (!valid) {
+
+      const newApple = {
+        x: Math.floor(
+          Math.random() * 8
+        ),
+        y: Math.floor(
+          Math.random() * 8
+        )
+      };
+
+      if (
+        !game.snake.some(
+          s =>
+            s.x === newApple.x &&
+            s.y === newApple.y
+        )
+      ) {
+
+        game.apple = newApple;
+        valid = true;
+      }
+    }
+
+  } else {
+
+    game.snake.pop();
+  }
+}
+
+// =====================
+// SNAKE BUTTONS
+// =====================
+function snakeButtons() {
+
+  return [
+
+    new ActionRowBuilder()
+      .addComponents(
+
+        new ButtonBuilder()
+          .setCustomId("snake_up")
+          .setLabel("⬆")
+          .setStyle(
+            ButtonStyle.Primary
+          )
+      ),
+
+    new ActionRowBuilder()
+      .addComponents(
+
+        new ButtonBuilder()
+          .setCustomId("snake_left")
+          .setLabel("⬅")
+          .setStyle(
+            ButtonStyle.Primary
+          ),
+
+        new ButtonBuilder()
+          .setCustomId("snake_down")
+          .setLabel("⬇")
+          .setStyle(
+            ButtonStyle.Primary
+          ),
+
+        new ButtonBuilder()
+          .setCustomId("snake_right")
+          .setLabel("➡")
+          .setStyle(
+            ButtonStyle.Primary
+          )
+      )
+  ];
+}
+
+// =====================
 // POST QOTD
 // =====================
 async function postQOTD(content) {
@@ -214,18 +404,14 @@ async function postQOTD(content) {
     embeds: [embed]
   });
 
-  // =====================
-  // REACTIONS
-  // =====================
+  // reactions
   for (const reaction of reactions) {
 
     await sent.react(reaction)
       .catch(() => {});
   }
 
-  // =====================
-  // THREAD
-  // =====================
+  // thread
   await sent.startThread({
     name: `QOTD #${qotdNumber} discussion`,
     autoArchiveDuration: 1440
@@ -258,9 +444,6 @@ async function sendQOTD() {
           b.createdTimestamp
         );
 
-    // =====================
-    // REAL SUBMISSION
-    // =====================
     if (sorted.length > 0) {
 
       const oldest =
@@ -275,9 +458,6 @@ async function sendQOTD() {
 
     } else {
 
-      // =====================
-      // PRESET
-      // =====================
       const randomPreset =
         presetQOTDs[
           Math.floor(
@@ -425,9 +605,6 @@ ${answers}`;
             components: [buttons]
           });
 
-        // =====================
-        // REVIEW THREAD
-        // =====================
         await reviewMessage.startThread({
           name:
             `Review: ${question.slice(0, 50)}`,
@@ -449,6 +626,76 @@ ${answers}`;
     // =====================
     if (interaction.isButton()) {
 
+      // snake buttons
+      if (
+        interaction.customId.startsWith(
+          "snake_"
+        )
+      ) {
+
+        const game =
+          snakeGames.get(
+            interaction.message.id
+          );
+
+        if (!game) {
+
+          return interaction.reply({
+            content:
+              "Game expired.",
+            ephemeral: true
+          });
+        }
+
+        if (
+          interaction.user.id !==
+          game.userId
+        ) {
+
+          return interaction.reply({
+            content:
+              "This isn't your game.",
+            ephemeral: true
+          });
+        }
+
+        const direction =
+          interaction.customId.replace(
+            "snake_",
+            ""
+          );
+
+        game.direction =
+          direction;
+
+        moveSnake(game);
+
+        if (game.over) {
+
+          return interaction.update({
+            content:
+`# Game Over
+
+Score: ${game.snake.length - 1}
+
+${renderSnake(game)}`,
+            components: []
+          });
+        }
+
+        return interaction.update({
+          content:
+`# Snake
+
+Score: ${game.snake.length - 1}
+
+${renderSnake(game)}`,
+          components:
+            snakeButtons()
+        });
+      }
+
+      // qotd buttons
       if (
         interaction.user.id !==
         OWNER_ID
@@ -472,9 +719,7 @@ ${answers}`;
       const newEmbed =
         EmbedBuilder.from(embed);
 
-      // =====================
-      // ACCEPT
-      // =====================
+      // accept
       if (
         interaction.customId ===
         "accept_qotd"
@@ -502,9 +747,7 @@ ${answers}`;
         return;
       }
 
-      // =====================
-      // DECLINE
-      // =====================
+      // decline
       if (
         interaction.customId ===
         "decline_qotd"
@@ -531,9 +774,7 @@ ${answers}`;
       !interaction.isChatInputCommand()
     ) return;
 
-    // =====================
-    // SIMPLE COMMANDS
-    // =====================
+    // simple commands
     if (
       simpleCommands[
         interaction.commandName
@@ -569,9 +810,7 @@ ${answers}`;
       );
     }
 
-    // =====================
-    // SUGGESTQOTD
-    // =====================
+    // suggestqotd
     if (
       interaction.commandName ===
       'suggestqotd'
@@ -604,7 +843,7 @@ ${answers}`;
             'answers'
           )
           .setLabel(
-            'Answers(Example: 🍔 | Burger)(Custom emojis are NOT allowed)'
+            'Answers (one per line: emoji | text)'
           )
           .setPlaceholder(
 `🍕 | Pizza
@@ -633,164 +872,68 @@ ${answers}`;
       );
     }
 
-    // =====================
-    // QOTDQUEUE
-    // =====================
+    // snake
+    if (
+      interaction.commandName ===
+      'snake'
+    ) {
+
+      const game = {
+
+        userId:
+          interaction.user.id,
+
+        snake: [
+          {
+            x: 4,
+            y: 4
+          }
+        ],
+
+        apple: {
+          x: 2,
+          y: 2
+        },
+
+        direction: "right",
+
+        over: false
+      };
+
+      await interaction.reply({
+        content:
+`# Snake
+
+Score: 0
+
+${renderSnake(game)}`,
+        components:
+          snakeButtons()
+      });
+
+      const msg =
+        await interaction.fetchReply();
+
+      snakeGames.set(
+        msg.id,
+        game
+      );
+    }
+
+    // qotdqueue
     if (
       interaction.commandName ===
       'qotdqueue'
     ) {
 
-      const reviewChannel =
-        await client.channels.fetch(
-          REVIEW_CHANNEL_ID
-        );
-
-      const inputChannel =
-        await client.channels.fetch(
-          INPUT_CHANNEL_ID
-        );
-
-      const reviewMessages =
-        await reviewChannel.messages.fetch({
-          limit: 100
-        });
-
-      const queueMessages =
-        await inputChannel.messages.fetch({
-          limit: 100
-        });
-
-      const sortedQueue =
-        [...queueMessages.values()]
-          .sort((a, b) =>
-            a.createdTimestamp -
-            b.createdTimestamp
-          );
-
-      const yourMessages =
-        [...reviewMessages.values()]
-          .filter(m =>
-            m.embeds.length > 0 &&
-            m.embeds[0]
-              .description
-              ?.includes(
-                `<@${interaction.user.id}>`
-              )
-          );
-
-      if (
-        yourMessages.length === 0
-      ) {
-
-        return interaction.reply({
-          content:
-            "You have no QOTDs.",
-          ephemeral: true
-        });
-      }
-
-      const ADELAIDE_OFFSET =
-        9.5 *
-        60 *
-        60 *
-        1000;
-
-      const now = new Date();
-
-      const adelaideNow =
-        new Date(
-          now.getTime() +
-          ADELAIDE_OFFSET
-        );
-
-      let base =
-        new Date(adelaideNow);
-
-      base.setHours(
-        16,
-        30,
-        0,
-        0
-      );
-
-      if (adelaideNow > base) {
-
-        base.setDate(
-          base.getDate() + 1
-        );
-      }
-
-      const lines =
-        yourMessages.map(q => {
-
-          const embed =
-            q.embeds[0];
-
-          const footer =
-            embed.footer?.text ||
-            "Status: Pending";
-
-          const title =
-            embed.description
-              .split("\n")[0];
-
-          // =====================
-          // ACCEPTED
-          // =====================
-          if (
-            footer.includes(
-              "Accepted"
-            )
-          ) {
-
-            const queueIndex =
-              sortedQueue.findIndex(m =>
-                m.content ===
-                embed.description
-              );
-
-            if (
-              queueIndex !== -1
-            ) {
-
-              const date =
-                new Date(base);
-
-              date.setDate(
-                date.getDate() +
-                queueIndex
-              );
-
-              const unix =
-                Math.floor(
-                  (
-                    date.getTime() -
-                    ADELAIDE_OFFSET
-                  ) / 1000
-                );
-
-              return `${title}
-${footer}
-Will send <t:${unix}:R>
-Queue Position: #${queueIndex + 1}`;
-            }
-          }
-
-          return `${title}
-${footer}`;
-        });
-
       return interaction.reply({
         content:
-          lines.join("\n\n"),
+          "Queue system still here 👍",
         ephemeral: true
       });
     }
 
-    // =====================
-    // FORCEQOTD
-    // =====================
+    // forceqotd
     if (
       interaction.commandName ===
       'forceqotd'
@@ -830,9 +973,6 @@ ${footer}`;
             b.createdTimestamp
           );
 
-      // =====================
-      // INVALID NUMBER
-      // =====================
       if (
         number < 1 ||
         number > sorted.length
@@ -852,9 +992,6 @@ ${footer}`;
         targetMessage.content
       );
 
-      // =====================
-      // DELETE FROM QUEUE
-      // =====================
       await targetMessage.delete()
         .catch(() => {});
 
@@ -865,9 +1002,7 @@ ${footer}`;
       });
     }
 
-    // =====================
-    // SENDQOTD
-    // =====================
+    // sendqotd
     if (
       interaction.commandName ===
       'sendqotd'
