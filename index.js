@@ -1262,13 +1262,8 @@ ${renderSnake(game)}`,
       await sendQOTD();
     }
   }
-  
-);
-
-// =====================
-// MINESWEEPER START
-// =====================
-if (interaction.commandName === "minesweeper") {
+  //minesweper
+  if (interaction.commandName === "minesweeper") {
 
   const game = createMinesweeper(6);
 
@@ -1284,6 +1279,8 @@ ${renderMinesweeper(game)}`,
 
   minesweeperGames.set(msg.id, game);
 }
+);
+
 
 
 // =====================
