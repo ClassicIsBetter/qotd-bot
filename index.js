@@ -1044,70 +1044,77 @@ ${renderSnake(game)}`,
 // =====================
 if (interaction.commandName === "ms") {
 
-  const input =
-    interaction.options.getString("cell");
+  const game =
+    minesweeperGames.get(
+      interaction.channel.id
+    );
 
-  const msg =
-    interaction.channel.lastMessage;
+  if (!game) {
 
-  const game = minesweeperGames.get(interaction.channel.id);
-
-  //let game = minesweeperGames.get(interaction.channel.id);
-
-if (!game) {
-  return interaction.reply({
-    content: "No active Minesweeper game found.",
-    flags: 64
-  });
-}
-
-  const x =
-    input.toLowerCase().charCodeAt(0) - 97;
-
-  const y =
-    parseInt(input.slice(1)) - 1;
-
-  const key = `${x},${y}`;
-
-  if (game.revealed.has(key)) {
     return interaction.reply({
-      content: "Already revealed.",
-      ephemeral: true
+      content:
+        "No active Minesweeper game found.",
+      flags: 64
     });
   }
 
-  // 💣 BOMB
+  const cell =
+    interaction.options
+      .getString("cell")
+      .toUpperCase();
+
+  const letters = "ABCDEF";
+
+  const rowLetter = cell[0];
+
+  const colNumber =
+    parseInt(cell.slice(1));
+
+  const y =
+    letters.indexOf(rowLetter);
+
+  const x =
+    colNumber - 1;
+
+  if (
+    x < 0 ||
+    x >= game.size ||
+    y < 0 ||
+    y >= game.size
+  ) {
+
+    return interaction.reply({
+      content:
+        "Invalid cell.",
+      flags: 64
+    });
+  }
+
+  const key = `${x},${y}`;
+
+  // bomb hit
   if (game.bombs.has(key)) {
 
     game.over = true;
 
+    game.revealed.add(key);
+
     return interaction.reply({
       content:
-`💥 BOOM
+`💥 BOOM!
 
 ${renderMinesweeper(game, true)}`
     });
   }
 
-  // 🌊 FLOOD FILL
-  floodFill(game, x, y);
-
-  // 🏆 WIN CHECK
-  const safeTiles =
-    game.size * game.size - game.bombs.size;
-
-  if (game.revealed.size >= safeTiles) {
-
-    return interaction.reply({
-      content:
-`🎉 YOU WIN
-
-${renderMinesweeper(game, true)}`
-    });
-  }
+  // normal reveal
+  game.revealed.add(key);
 
   return interaction.reply({
-    content: renderMinesweeper(game)
+    content:
+`# Minesweeper
+
+${renderMinesweeper(game)}`
   });
 }
     // snake
