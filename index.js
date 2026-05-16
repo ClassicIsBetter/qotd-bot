@@ -1472,61 +1472,55 @@ ${renderSnake(game)}`,
     }
 
     // sendqotd
-    if (
-      interaction.commandName ===
-      'sendqotd'
-    ) {
+    // =====================
+// QOTD COMMANDS ABOVE (UNCHANGED)
+// =====================
 
-      if (
-        interaction.user.id !==
-        OWNER_ID
-      ) {
+// sendqotd
+if (interaction.commandName === 'sendqotd') {
 
-        return interaction.reply({
-          content:
-            "No permission.",
-          ephemeral: true
-        });
-      }
+  if (interaction.user.id !== OWNER_ID) {
+    return interaction.reply({
+      content: "No permission.",
+      ephemeral: true
+    });
+  }
 
-      await interaction.reply(
-        "Sending QOTD..."
-      );
+  await interaction.reply("Sending QOTD...");
+  await sendQOTD();
+}
 
-      await sendQOTD();
-    }
-  
-  // =====================
-  // MINESWEEPER (MUST BE HERE)
-  // =====================
-  if (interaction.commandName === "minesweeper") {
 
-    
+// =====================
+// MINESWEEPER
+// =====================
+
+if (interaction.commandName === "minesweeper") {
+
   const game = createMinesweeper(6);
 
-const row = new ActionRowBuilder().addComponents(
-  new ButtonBuilder()
-    .setCustomId("ms_reveal")
-    .setLabel("Reveal Cell")
-    .setStyle(ButtonStyle.Primary)
-);
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("ms_reveal")
+      .setLabel("Reveal Cell")
+      .setStyle(ButtonStyle.Primary)
+  );
 
-const msg = await interaction.reply({
-  content:
+  const msg = await interaction.reply({
+    content:
 `# Minesweeper
 
 Click the button to reveal a cell
 
 ${renderMinesweeper(game)}`,
-  components: [row],
-  fetchReply: true
-});
+    components: [row],
+    fetchReply: true
+  });
 
-minesweeperGames.set(interaction.channel.id, game);
-
-
-} // the silly bracket, yes he has a name
-
+  minesweeperGames.set(interaction.channel.id, game);
+}
+//}  the silly bracket, yes he has a name
+//});
 
 // =====================
 // LOGIN
