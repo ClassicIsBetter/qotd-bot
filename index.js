@@ -1504,29 +1504,26 @@ ${renderSnake(game)}`,
     
   const game = createMinesweeper(6);
 
-    const row = new ActionRowBuilder().addComponents(
+const row = new ActionRowBuilder().addComponents(
   new ButtonBuilder()
     .setCustomId("ms_reveal")
     .setLabel("Reveal Cell")
     .setStyle(ButtonStyle.Primary)
 );
 
-  await interaction.reply({
-    content:
+const msg = await interaction.reply({
+  content:
 `# Minesweeper
 
-Use the button to reveal a cell
+Click the button to reveal a cell
 
-${renderMinesweeper(game)}`
-  });
+${renderMinesweeper(game)}`,
+  components: [row],
+  fetchReply: true
+});
 
+minesweeperGames.set(interaction.channel.id, game);
 
-  // SAVE GAME
-  minesweeperGames.set(
-    interaction.channel.id,
-    game
-  );
-}
 
 }); // <-- ONLY ONE CLOSING BRACKET HERE
 
