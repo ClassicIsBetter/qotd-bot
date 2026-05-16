@@ -383,28 +383,24 @@ function floodFill(game, x, y) {
 
   const tile = game.board[y][x];
 
-  // already revealed
+  // stop if already revealed
   if (tile.revealed) return;
 
-  // don't reveal bombs
+  // stop bombs
   if (tile.bomb) return;
 
-  if (tile.number === 0) {
-
-  floodFill(game, x, y);
-
-} else {
-
+  // reveal FIRST
   tile.revealed = true;
-}
 
-  // stop at numbers
+  // stop spreading at numbers
   if (tile.number > 0) return;
 
-  // continue spreading
+  // spread
   for (let dy = -1; dy <= 1; dy++) {
+
     for (let dx = -1; dx <= 1; dx++) {
 
+      // skip self
       if (dx === 0 && dy === 0)
         continue;
 
