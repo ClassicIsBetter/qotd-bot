@@ -330,24 +330,48 @@ function countBombs(game, x, y) {
 // flood fill
 function floodFill(game, x, y) {
 
-  const key = `${x},${y}`;
-
+  // outside board
   if (
-    x < 0 || y < 0 ||
-    x >= game.size || y >= game.size
+    x < 0 ||
+    y < 0 ||
+    x >= game.size ||
+    y >= game.size
   ) return;
 
-  if (game.revealed.has(key)) return;
-  if (game.bombs.has(key)) return;
+  const tile = game.board[y][x];
 
-  game.revealed.add(key);
+  // already revealed
+  if (tile.revealed) return;
 
-  if (countBombs(game, x, y) !== 0) return;
+  // don't reveal bombs
+  if (tile.bomb) return;
 
-  floodFill(game, x + 1, y);
-  floodFill(game, x - 1, y);
-  floodFill(game, x, y + 1);
-  floodFill(game, x, y - 1);
+  if (tile.number === 0) {
+
+  floodFill(game, x, y);
+
+} else {
+
+  tile.revealed = true;
+}
+
+  // stop at numbers
+  if (tile.number > 0) return;
+
+  // continue spreading
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+
+      if (dx === 0 && dy === 0)
+        continue;
+
+      floodFill(
+        game,
+        x + dx,
+        y + dy
+      );
+    }
+  }
 }
 
 // render
