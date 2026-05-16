@@ -152,31 +152,30 @@ const commands = [
     .toJSON(),
 
   new SlashCommandBuilder()
-    .setName('qotdqueue')
-    .setDescription('View your queued QOTDs')
-    .toJSON(),
+  .setName('qotdqueue')
+  .setDescription('View your queued QOTDs')
+  .toJSON(),
 
-  new SlashCommandBuilder()
-    .setName('snake')
-    .setDescription('Play snake')
-    .toJSON()
+new SlashCommandBuilder()
+  .setName('snake')
+  .setDescription('Play snake')
+  .toJSON(),
 
-  new SlashCommandBuilder()
+new SlashCommandBuilder()
   .setName('minesweeper')
   .setDescription('Play Minesweeper')
   .toJSON(),
 
-  new SlashCommandBuilder()
-    .setName('ms')
-    .setDescription('Reveal a tile (example: a5)')
-    .addStringOption(opt =>
-      opt.setName('cell')
-        .setDescription('Example: a5')
-        .setRequired(true)
-    )
+new SlashCommandBuilder()
+  .setName('ms')
+  .setDescription('Reveal a tile (example: a5)')
+  .addStringOption(opt =>
+    opt
+      .setName('cell')
+      .setDescription('Example: a5')
+      .setRequired(true)
+  )
   .toJSON(),
-];
-
 // =====================
 // REGISTER COMMANDS
 // =====================
