@@ -1052,12 +1052,14 @@ if (interaction.commandName === "ms") {
   const game =
     minesweeperGames.get(msg.id);
 
-  if (!game) {
-    return interaction.reply({
-      content: "No active Minesweeper game found.",
-      ephemeral: true
-    });
-  }
+  const game = minesweeperGames.get(interaction.channel.id);
+
+if (!game) {
+  return interaction.reply({
+    content: "No active Minesweeper game found.",
+    flags: 64
+  });
+}
 
   const x =
     input.toLowerCase().charCodeAt(0) - 97;
