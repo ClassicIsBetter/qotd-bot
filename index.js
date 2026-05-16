@@ -98,7 +98,7 @@ Check if the bot is alive
 // =====================
 // STATE
 // =====================
-let qotdNumber = 19;
+let qotdNumber = 24;
 
 // =====================
 // SNAKE GAMES
@@ -214,6 +214,7 @@ function renderSnake(game) {
 
     for (let x = 0; x < size; x++) {
 
+      // apple
       if (
         x === game.apple.x &&
         y === game.apple.y
@@ -223,6 +224,7 @@ function renderSnake(game) {
         continue;
       }
 
+      // snake
       const snakePart =
         game.snake.find(
           s =>
@@ -232,10 +234,34 @@ function renderSnake(game) {
 
       if (snakePart) {
 
-        row.push("🟩");
+        // head
+        if (
+          snakePart.x === game.snake[0].x &&
+          snakePart.y === game.snake[0].y
+        ) {
+
+          if (game.direction === "up")
+            row.push("⬆️");
+
+          else if (game.direction === "down")
+            row.push("⬇️");
+
+          else if (game.direction === "left")
+            row.push("⬅️");
+
+          else
+            row.push("➡️");
+
+        } else {
+
+          // body
+          row.push("🟩");
+        }
+
         continue;
       }
 
+      // empty
       row.push("⬛");
     }
 
@@ -244,7 +270,6 @@ function renderSnake(game) {
 
   return grid.join("\n");
 }
-
 // =====================
 // MOVE SNAKE
 // =====================
