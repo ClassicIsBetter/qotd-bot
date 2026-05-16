@@ -155,7 +155,7 @@ const commands = [
   .setName('qotdqueue')
   .setDescription('View your queued QOTDs')
   .toJSON(),
-
+  
 new SlashCommandBuilder()
   .setName('snake')
   .setDescription('Play snake')
@@ -175,23 +175,20 @@ new SlashCommandBuilder()
       .setDescription('Example: a5')
       .setRequired(true)
   )
-  .toJSON(),
+  .toJSON()
+
+]; // 👈 MUST BE HERE
 // =====================
 // REGISTER COMMANDS
 // =====================
 const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 (async () => {
-
   try {
-
     console.log("Registering commands...");
 
     await rest.put(
-      Routes.applicationGuildCommands(
-        CLIENT_ID,
-        GUILD_ID
-      ),
+      Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
       { body: commands }
     );
 
