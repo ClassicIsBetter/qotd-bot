@@ -104,11 +104,6 @@ let qotdNumber = 24;
 // SNAKE GAMES
 // =====================
 const snakeGames = new Map();
-const minesweeperGames = new Map();
-
-const snakeSettings = {
-  maxApples: 3
-};
 
 console.log("Bot starting...");
 
@@ -156,43 +151,32 @@ const commands = [
     .toJSON(),
 
   new SlashCommandBuilder()
-  .setName('qotdqueue')
-  .setDescription('View your queued QOTDs')
-  .toJSON(),
-  
-new SlashCommandBuilder()
-  .setName('snake')
-  .setDescription('Play snake')
-  .toJSON(),
+    .setName('qotdqueue')
+    .setDescription('View your queued QOTDs')
+    .toJSON(),
 
-new SlashCommandBuilder()
-  .setName('minesweeper')
-  .setDescription('Play Minesweeper')
-  .toJSON(),
+  new SlashCommandBuilder()
+    .setName('snake')
+    .setDescription('Play snake')
+    .toJSON()
+];
 
-new SlashCommandBuilder()
-  .setName('ms')
-  .setDescription('Reveal a tile (example: a5)')
-  .addStringOption(opt =>
-    opt
-      .setName('cell')
-      .setDescription('Example: a5')
-      .setRequired(true)
-  )
-  .toJSON()
-
-]; // 👈 MUST BE HERE
 // =====================
 // REGISTER COMMANDS
 // =====================
 const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 (async () => {
+
   try {
+
     console.log("Registering commands...");
 
     await rest.put(
-      Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+      Routes.applicationGuildCommands(
+        CLIENT_ID,
+        GUILD_ID
+      ),
       { body: commands }
     );
 
@@ -225,235 +209,66 @@ function renderSnake(game) {
   let grid = [];
 
   for (let y = 0; y < size; y++) {
+
     let row = [];
 
     for (let x = 0; x < size; x++) {
 
       // apple
-      if (game.apple.x === x && game.apple.y === y) {
+      if (
+        x === game.apple.x &&
+        y === game.apple.y
+      ) {
+
         row.push("🍎");
         continue;
       }
 
-      // snake body
-      const isSnake = game.snake.some(s => s.x === x && s.y === y);
+      // snake
+      const snakePart =
+        game.snake.find(
+          s =>
+            s.x === x &&
+            s.y === y
+        );
 
-      if (isSnake) {
+      if (snakePart) {
 
-        const head = game.snake[0];
+        // head
+        if (
+          snakePart.x === game.snake[0].x &&
+          snakePart.y === game.snake[0].y
+        ) {
 
-        if (head.x === x && head.y === y) {
+          if (game.direction === "up")
+            row.push("⬆️");
 
-          // 👉 HEAD DIRECTION EMOJIS
-          if (game.direction === "up") row.push("⬆️");
-          else if (game.direction === "down") row.push("⬇️");
-          else if (game.direction === "left") row.push("⬅️");
-          else if (game.direction === "right") row.push("➡️");
-          else row.push("🟩");
+          else if (game.direction === "down")
+            row.push("⬇️");
+
+          else if (game.direction === "left")
+            row.push("⬅️");
+
+          else
+            row.push("➡️");
 
         } else {
+
+          // body
           row.push("🟩");
         }
 
-      } else {
-        row.push("⬛");
+        continue;
       }
+
+      // empty
+      row.push("⬛");
     }
 
     grid.push(row.join(""));
   }
 
   return grid.join("\n");
-}
-// =====================
-// MINESWEEPER CORE
-// =====================
-
-function createMinesweeper(size) {
-
-  const board = [];
-
-  // create tiles
-  for (let y = 0; y < size; y++) {
-
-    board[y] = [];
-
-    for (let x = 0; x < size; x++) {
-
-      board[y][x] = {
-        bomb: false,
-        revealed: false,
-        number: 0
-      };
-    }
-  }
-
-  // place bombs
-  let bombsPlaced = 0;
-
-  while (bombsPlaced < 6) {
-
-    const x =
-      Math.floor(
-        Math.random() * size
-      );
-
-    const y =
-      Math.floor(
-        Math.random() * size
-      );
-
-    if (!board[y][x].bomb) {
-
-      board[y][x].bomb = true;
-
-      bombsPlaced++;
-    }
-  }
-
-  // calculate numbers
-  for (let y = 0; y < size; y++) {
-
-    for (let x = 0; x < size; x++) {
-
-      if (board[y][x].bomb)
-        continue;
-
-      let count = 0;
-
-      for (let dy = -1; dy <= 1; dy++) {
-
-        for (let dx = -1; dx <= 1; dx++) {
-
-          if (dx === 0 && dy === 0)
-            continue;
-
-          const nx = x + dx;
-          const ny = y + dy;
-
-          if (
-            nx >= 0 &&
-            ny >= 0 &&
-            nx < size &&
-            ny < size &&
-            board[ny][nx].bomb
-          ) {
-            count++;
-          }
-        }
-      }
-
-      board[y][x].number = count;
-    }
-  }
-
-  return {
-    size,
-    board
-  };
-}
-// flood fill
-function floodFill(game, x, y) {
-
-  // outside board
-  if (
-    x < 0 ||
-    y < 0 ||
-    x >= game.size ||
-    y >= game.size
-  ) return;
-
-  const tile = game.board[y][x];
-
-  // stop if already revealed
-  if (tile.revealed) return;
-
-  // stop bombs
-  if (tile.bomb) return;
-
-  // reveal FIRST
-  tile.revealed = true;
-
-  // stop spreading at numbers
-  if (tile.number > 0) return;
-
-  // spread
-  for (let dy = -1; dy <= 1; dy++) {
-
-    for (let dx = -1; dx <= 1; dx++) {
-
-      // skip self
-      if (dx === 0 && dy === 0)
-        continue;
-
-      floodFill(
-        game,
-        x + dx,
-        y + dy
-      );
-    }
-  }
-}
-
-// render
-function renderMinesweeper(game) {
-
-  const letters = ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫"];
-
-  let text =
-`⬛1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣
-`;
-
-  for (let y = 0; y < game.size; y++) {
-
-    text += `${letters[y]} `;
-
-    for (let x = 0; x < game.size; x++) {
-
-      const tile =
-        game.board[y][x];
-
-      // unrevealed
-      if (!tile.revealed) {
-
-        text += "🟦";
-        continue;
-      }
-
-      // bomb
-      if (tile.bomb) {
-
-        text += "💣";
-        continue;
-      }
-
-      // empty
-      if (tile.number === 0) {
-
-        text += "⬛";
-        continue;
-      }
-
-      // numbers
-      const numbers = {
-        1: "1️⃣",
-        2: "2️⃣",
-        3: "3️⃣",
-        4: "4️⃣",
-        5: "5️⃣",
-        6: "6️⃣",
-        7: "7️⃣",
-        8: "8️⃣"
-      };
-
-      text +=
-        numbers[tile.number];
-    }
-
-    text += "\n";
-  }
-
-  return text;
 }
 // =====================
 // MOVE SNAKE
@@ -530,9 +345,8 @@ function moveSnake(game) {
         )
       ) {
 
-        if (currentApples < snakeSettings.maxApples) {
-  spawnApple();
-}
+        game.apple = newApple;
+        valid = true;
       }
     }
 
@@ -565,13 +379,6 @@ function snakeButtons() {
           .setLabel("⬆️")
           .setStyle(
             ButtonStyle.Primary
-          ),
-
-        new ButtonBuilder()
-          .setCustomId("snake_settings")
-          .setLabel("⚙️ Settings")
-          .setStyle(
-            ButtonStyle.Secondary
           )
       ),
 
@@ -599,7 +406,6 @@ function snakeButtons() {
             ButtonStyle.Primary
           )
       )
-
   ];
 }
 // =====================
@@ -760,35 +566,6 @@ client.on(
     // =====================
     if (interaction.isModalSubmit()) {
 
-      if (interaction.isModalSubmit() && interaction.customId === "snake_settings_modal") {
-
-  const input = interaction.fields.getTextInputValue("max_apples");
-  const value = parseInt(input);
-
-  // safety check
-  if (isNaN(value) || value < 1 || value > 20) {
-    return interaction.reply({
-      content: "Please enter a number between 1 and 20.",
-      ephemeral: true
-    });
-  }
-
-  // make sure settings object exists
-  if (!global.snakeSettings) {
-    global.snakeSettings = {
-      maxApples: 3
-    };
-  }
-
-  // save setting
-  snakeSettings.maxApples = value;
-
-  return interaction.reply({
-    content: `✅ Max apples set to **${value}**`,
-    ephemeral: true
-  });
-}
-
       if (
         interaction.customId ===
         'qotdModal'
@@ -808,8 +585,6 @@ client.on(
           await client.channels.fetch(
             REVIEW_CHANNEL_ID
           );
-
-        
 
         const qotdContent =
 `"${question}" suggested by <@${interaction.user.id}>
@@ -875,99 +650,8 @@ ${answers}`;
         });
       }
 
-      if (interaction.isModalSubmit()) {
-
-  if (interaction.customId === "ms_modal") {
-
-    const cell =
-      interaction.fields
-        .getTextInputValue("cell")
-        .toLowerCase();
-
-    const game =
-      minesweeperGames.get(
-        interaction.channel.id
-      );
-
-    if (!game) {
-      return interaction.reply({
-        content: "No active Minesweeper game found.",
-        ephemeral: true
-      });
-    }
-
-    const letters = "abcdef";
-
-    const y = letters.indexOf(cell[0]);
-    const x = parseInt(cell.slice(1)) - 1;
-
-    if (
-      y < 0 ||
-      x < 0 ||
-      y >= game.size ||
-      x >= game.size
-    ) {
-      return interaction.reply({
-        content: "Invalid cell.",
-        ephemeral: true
-      });
-    }
-
-    const tile = game.board[y][x];
-
-    // 💥 bomb hit
-    if (tile.bomb) {
-
-      tile.revealed = true;
-
-      // reveal all bombs
-      for (let yy = 0; yy < game.size; yy++) {
-        for (let xx = 0; xx < game.size; xx++) {
-          if (game.board[yy][xx].bomb) {
-            game.board[yy][xx].revealed = true;
-          }
-        }
-      }
-
-      minesweeperGames.delete(interaction.channel.id);
-    }
-
-    // 🌊 safe tile
-    else {
-
-      if (tile.number === 0) {
-        floodFill(game, x, y);
-      } else {
-        tile.revealed = true;
-      }
-    }
-
-    // 🧠 EDIT THE ORIGINAL MESSAGE (IMPORTANT PART)
-    const message =
-      await interaction.channel.messages.fetch(
-        interaction.message.id
-      ).catch(() => null);
-
-    if (!message) {
-      return interaction.reply({
-        content: "Game message not found.",
-        ephemeral: true
-      });
-    }
-
-    return message.edit({
-      content:
-`# Minesweeper
-
-Click "Reveal Cell" to play
-
-${renderMinesweeper(game)}`
-    });
-  }
-}
       return;
     }
-
 
     // =====================
 // BUTTONS
@@ -977,116 +661,87 @@ if (interaction.isButton()) {
   // =====================
   // SNAKE BUTTONS
   // =====================
-if (interaction.isButton()) {
+  if (
+    !interaction.customId.startsWith(
+      "snake_"
+    )
+  ) {
 
-  const game = snakeGames.get(interaction.channel.id);
-  if (!game) {
-    return interaction.reply({
-      content: "No active Snake game found.",
-      ephemeral: true
-    });
-  }
+    // continue to qotd buttons
 
-  // =====================
-  // SETTINGS (IMPORTANT: MUST COME FIRST)
-  // =====================
-  if (interaction.customId === "snake_settings") {
-
-    const modal = new ModalBuilder()
-      .setCustomId("snake_settings_modal")
-      .setTitle("Snake Settings");
-
-    const maxApples = new TextInputBuilder()
-      .setCustomId("max_apples")
-      .setLabel("Max Apples")
-      .setStyle(TextInputStyle.Short)
-      .setValue(String(game.maxApples ?? 1));
-
-    const row = new ActionRowBuilder().addComponents(maxApples);
-
-    modal.addComponents(row);
-
-    return interaction.showModal(modal);
-  }
-
-  // =====================
-  // MOVEMENT LOGIC
-  // =====================
-  const head = { ...game.snake[0] };
-
-  if (interaction.customId === "snake_up") head.y--;
-  if (interaction.customId === "snake_down") head.y++;
-  if (interaction.customId === "snake_left") head.x--;
-  if (interaction.customId === "snake_right") head.x++;
-
-  // prevent instant reverse / invalid move safety (optional but helpful)
-  const ateApple =
-    head.x === game.apple.x &&
-    head.y === game.apple.y;
-
-  // add new head
-  game.snake.unshift(head);
-
-  // apple logic
-  if (ateApple) {
-    game.score++;
-
-    game.apple = {
-      x: Math.floor(Math.random() * 8),
-      y: Math.floor(Math.random() * 8)
-    };
   } else {
-    game.snake.pop();
-  }
 
-  // =====================
-  // GAME OVER CHECK
-  // =====================
-  const hitWall =
-    head.x < 0 || head.y < 0 || head.x > 7 || head.y > 7;
+    // blank button
+    if (
+      interaction.customId ===
+      "snake_blank"
+    ) {
 
-  const hitSelf =
-    game.snake.slice(1).some(s => s.x === head.x && s.y === head.y);
+      return interaction.deferUpdate();
+    }
 
-  if (hitWall || hitSelf) {
-    snakeGames.delete(interaction.channel.id);
+    const game =
+      snakeGames.get(
+        interaction.message.id
+      );
+
+    if (!game) {
+
+      return interaction.reply({
+        content:
+          "Game expired.",
+        ephemeral: true
+      });
+    }
+
+    if (
+      interaction.user.id !==
+      game.userId
+    ) {
+
+      return interaction.reply({
+        content:
+          "This isn't your game.",
+        ephemeral: true
+      });
+    }
+
+    const direction =
+      interaction.customId.replace(
+        "snake_",
+        ""
+      );
+
+    game.direction =
+      direction;
+
+    moveSnake(game);
+
+    // game over
+    if (game.over) {
+
+      return interaction.update({
+        content:
+`# Game Over
+
+Score: ${game.snake.length - 1}
+
+${renderSnake(game)}`,
+        components: []
+      });
+    }
 
     return interaction.update({
-      content: "💀 Game Over",
-      components: []
+      content:
+`# Snake
+
+Score: ${game.snake.length - 1}
+
+${renderSnake(game)}`,
+      components:
+        snakeButtons()
     });
   }
-
-  // =====================
-  // UPDATE MESSAGE (IMPORTANT)
-  // =====================
-  return interaction.update({
-    content: renderSnake(game),
-    components: snakeButtons()
-  });
-}
-  //minesweepper
-  if (interaction.isButton()) {
-
-  if (interaction.customId === "ms_reveal") {
-
-    const modal = new ModalBuilder()
-      .setCustomId("ms_modal")
-      .setTitle("Reveal Minesweeper Cell");
-
-    const cellInput = new TextInputBuilder()
-      .setCustomId("cell")
-      .setLabel("Enter cell (example: a5)")
-      .setStyle(TextInputStyle.Short)
-      .setRequired(true);
-
-    const row = new ActionRowBuilder().addComponents(cellInput);
-
-    modal.addComponents(row);
-
-    return interaction.showModal(modal);
-  }
-}
 
   // =====================
   // QOTD BUTTONS
@@ -1208,8 +863,6 @@ if (interaction.isButton()) {
       );
     }
 
-    
-
     // suggestqotd
     if (
       interaction.commandName ===
@@ -1272,136 +925,53 @@ if (interaction.isButton()) {
       );
     }
 
-    // =====================
-// MINESWEEPER
-// =====================
-if (interaction.commandName === "ms") {
+    // snake
+    if (
+      interaction.commandName ===
+      'snake'
+    ) {
 
-  const game =
-    minesweeperGames.get(
-      interaction.channel.id
-    );
+      const game = {
 
-  if (!game) {
+        userId:
+          interaction.user.id,
 
-    return interaction.reply({
-      content:
-        "No active Minesweeper game found.",
-      ephemeral: true
-    });
-  }
+        snake: [
+          {
+            x: 4,
+            y: 4
+          }
+        ],
 
-  const input =
-    interaction.options
-      .getString("cell")
-      .toLowerCase();
+        apple: {
+          x: 2,
+          y: 2
+        },
 
-  const letters = "abcdef";
+        direction: "right",
 
-  const y =
-    letters.indexOf(input[0]);
+        over: false
+      };
 
-  const x =
-    parseInt(input.slice(1)) - 1;
-
-  if (
-    y < 0 ||
-    x < 0 ||
-    x >= game.size ||
-    y >= game.size
-  ) {
-
-    return interaction.reply({
-      content:
-        "Invalid cell.",
-      ephemeral: true
-    });
-  }
-
-  const tile =
-    game.board[y][x];
-
-  // bomb
-  if (tile.bomb) {
-
-    tile.revealed = true;
-
-    // reveal all bombs
-    for (let yy = 0; yy < game.size; yy++) {
-
-      for (let xx = 0; xx < game.size; xx++) {
-
-        if (
-          game.board[yy][xx].bomb
-        ) {
-          game.board[yy][xx]
-            .revealed = true;
-        }
-      }
-    }
-
-    minesweeperGames.delete(
-      interaction.channel.id
-    );
-
-    return interaction.reply({
-      content:
-`💥 BOOM!
-
-${renderMinesweeper(game)}`
-    });
-  }
-
-  // flood fill
-  if (tile.number === 0) {
-
-    floodFill(game, x, y);
-
-  } else {
-
-    tile.revealed = true;
-  }
-
-  return interaction.reply({
-    content:
-      renderMinesweeper(game)
-  });
-}
-// snake
-if (interaction.commandName === 'snake') {
-
-  const game = {
-    userId: interaction.user.id,
-
-    snake: [
-      { x: 4, y: 4 }
-    ],
-
-    apple: {
-      x: 2,
-      y: 2
-    },
-
-    direction: "right",
-
-    score: 0,
-
-    over: false
-  };
-
-  const msg = await interaction.reply({
-    content:
+      await interaction.reply({
+        content:
 `# Snake
 
 Score: 0
 
 ${renderSnake(game)}`,
-    components: snakeButtons()
-  });
+        components:
+          snakeButtons()
+      });
 
-  // IMPORTANT: use channel.id so movement can find it
-  snakeGames.set(interaction.channel.id, game);
-}
+      const msg =
+        await interaction.fetchReply();
+
+      snakeGames.set(
+        msg.id,
+        game
+      );
+    }
 
     // qotdqueue
     if (
@@ -1486,58 +1056,31 @@ ${renderSnake(game)}`,
     }
 
     // sendqotd
-    // =====================
-// QOTD COMMANDS ABOVE (UNCHANGED)
-// =====================
+    if (
+      interaction.commandName ===
+      'sendqotd'
+    ) {
 
-// sendqotd
-if (interaction.commandName === 'sendqotd') {
+      if (
+        interaction.user.id !==
+        OWNER_ID
+      ) {
 
-  if (interaction.user.id !== OWNER_ID) {
-    return interaction.reply({
-      content: "No permission.",
-      ephemeral: true
-    });
-  }
+        return interaction.reply({
+          content:
+            "No permission.",
+          ephemeral: true
+        });
+      }
 
-  await interaction.reply("Sending QOTD...");
-  await sendQOTD();
-}
+      await interaction.reply(
+        "Sending QOTD..."
+      );
 
-
-// =====================
-// MINESWEEPER
-// =====================
-
-if (interaction.commandName === "minesweeper") {
-
-  const game = createMinesweeper(6);
-
-  const row = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId("ms_reveal")
-      .setLabel("Reveal Cell")
-      .setStyle(ButtonStyle.Primary)
-  );
-
-  const msg = await interaction.reply({
-    content:
-`# Minesweeper
-
-Click the button to reveal a cell
-
-${renderMinesweeper(game)}`,
-    components: [row],
-    fetchReply: true
-  });
-
-      minesweeperGames.set(interaction.channel.id, game);
+      await sendQOTD();
     }
-
-  }); // 👈 closes: client.on("interactionCreate", async (interaction) => {
-
-//}  the silly bracket, yes he has a name
-//});
+  }
+);
 
 // =====================
 // LOGIN
