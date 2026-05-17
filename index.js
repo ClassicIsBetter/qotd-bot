@@ -583,7 +583,7 @@ function snakeButtons() {
           .setDisabled(true),
 
         new ButtonBuilder()
-          .setCustomId("up")
+          .setCustomId("snake_up")
           .setLabel("⬆️")
           .setStyle(
             ButtonStyle.Primary
@@ -1082,7 +1082,7 @@ ${renderSnake(game)}`,
   }
 
   //snek settings
-  if (interaction.isButton() && interaction.customId === "snake_settings") {
+  if (interaction.customId === "snake_settings") {
 
   const modal = new ModalBuilder()
     .setCustomId("snake_settings_modal")
@@ -1092,14 +1092,14 @@ ${renderSnake(game)}`,
     .setCustomId("max_apples")
     .setLabel("Max Apples")
     .setStyle(TextInputStyle.Short)
-    .setPlaceholder("e.g. 3")
-    .setRequired(true);
+    .setValue("1");
 
-  const row = new ActionRowBuilder().addComponents(maxApples);
+  const row = new ActionRowBuilder()
+    .addComponents(maxApples);
 
   modal.addComponents(row);
 
-  return interaction.showModal(modal);
+  await interaction.showModal(modal);
 }
 
   //minesweepper
