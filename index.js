@@ -225,60 +225,39 @@ function renderSnake(game) {
   let grid = [];
 
   for (let y = 0; y < size; y++) {
-
     let row = [];
 
     for (let x = 0; x < size; x++) {
 
       // apple
-      if (
-        x === game.apple.x &&
-        y === game.apple.y
-      ) {
-
+      if (game.apple.x === x && game.apple.y === y) {
         row.push("🍎");
         continue;
       }
 
-      // snake
-      const snakePart =
-        game.snake.find(
-          s =>
-            s.x === x &&
-            s.y === y
-        );
+      // snake body
+      const isSnake = game.snake.some(s => s.x === x && s.y === y);
 
-      if (snakePart) {
+      if (isSnake) {
 
-        // head
-        if (
-          snakePart.x === game.snake[0].x &&
-          snakePart.y === game.snake[0].y
-        ) {
+        const head = game.snake[0];
 
-          if (game.direction === "up")
-            row.push("⬆️");
+        if (head.x === x && head.y === y) {
 
-          else if (game.direction === "down")
-            row.push("⬇️");
-
-          else if (game.direction === "left")
-            row.push("⬅️");
-
-          else
-            row.push("➡️");
+          // 👉 HEAD DIRECTION EMOJIS
+          if (game.direction === "up") row.push("⬆️");
+          else if (game.direction === "down") row.push("⬇️");
+          else if (game.direction === "left") row.push("⬅️");
+          else if (game.direction === "right") row.push("➡️");
+          else row.push("🟩");
 
         } else {
-
-          // body
           row.push("🟩");
         }
 
-        continue;
+      } else {
+        row.push("⬛");
       }
-
-      // empty
-      row.push("⬛");
     }
 
     grid.push(row.join(""));
@@ -286,7 +265,6 @@ function renderSnake(game) {
 
   return grid.join("\n");
 }
-
 // =====================
 // MINESWEEPER CORE
 // =====================
