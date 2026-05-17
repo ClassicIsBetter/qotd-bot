@@ -1389,53 +1389,38 @@ ${renderMinesweeper(game)}`
       renderMinesweeper(game)
   });
 }
-    // snake
-    if (
-      interaction.commandName ===
-      'snake'
-    ) {
+// snake
+if (interaction.commandName === 'snake') {
 
-      const game = {
+  const game = {
+    userId: interaction.user.id,
 
-        userId:
-          interaction.user.id,
+    snake: [{ x: 4, y: 4 }],
 
-        snake: [
-          {
-            x: 4,
-            y: 4
-          }
-        ],
+    apple: { x: 2, y: 2 },
 
-        apple: {
-          x: 2,
-          y: 2
-        },
+    direction: "right",
 
-        direction: "right",
+    score: 0,
 
-        over: false
-      };
+    over: false
+  };
 
-      await interaction.reply({
-        content:
+  await interaction.reply({
+    content:
 `# Snake
 
 Score: 0
 
 ${renderSnake(game)}`,
-        components:
-          snakeButtons()
-      });
+    components: snakeButtons()
+  });
 
-      const msg =
-        await interaction.fetchReply();
+  const msg = await interaction.fetchReply();
 
-      snakeGames.set(
-        msg.id,
-        game
-      );
-    }
+  // ✅ FIX: use channel.id (NOT message.id)
+  snakeGames.set(interaction.channel.id, game);
+}
 
     // qotdqueue
     if (
