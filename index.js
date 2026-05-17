@@ -999,109 +999,94 @@ if (interaction.isButton()) {
   // =====================
   // SNAKE BUTTONS
   // =====================
-  if (
-    !interaction.customId.startsWith(
-      "snake_"
-    )
-  ) {
+if (interaction.isButton()) {
 
-    // continue to qotd buttons
-
-  } else {
-
-    // blank button
-    if (
-      interaction.customId ===
-      "snake_blank"
-    ) {
-
-      return interaction.deferUpdate();
-    }
-
-    const game =
-      snakeGames.get(
-        interaction.message.id
-      );
-
-    if (!game) {
-
-      return interaction.reply({
-        content:
-          "Game expired.",
-        ephemeral: true
-      });
-    }
-
-    if (
-      interaction.user.id !==
-      game.userId
-    ) {
-
-      return interaction.reply({
-        content:
-          "This isn't your game.",
-        ephemeral: true
-      });
-    }
-
-    const direction =
-      interaction.customId.replace(
-        "snake_",
-        ""
-      );
-
-    game.direction =
-      direction;
-
-    moveSnake(game);
-
-    // game over
-    if (game.over) {
-
-      return interaction.update({
-        content:
-`# Game Over
-
-Score: ${game.snake.length - 1}
-
-${renderSnake(game)}`,
-        components: []
-      });
-    }
-
-    return interaction.update({
-      content:
-`# Snake
-
-Score: ${game.snake.length - 1}
-
-${renderSnake(game)}`,
-      components:
-        snakeButtons()
+  const game = snakeGames.get(interaction.channel.id);
+  if (!game) {
+    return interaction.reply({
+      content: "No active Snake game found.",
+      ephemeral: true
     });
   }
 
-  //snek settings
+  // =====================
+  // SETTINGS (IMPORTANT: MUST COME FIRST)
+  // =====================
   if (interaction.customId === "snake_settings") {
 
-  const modal = new ModalBuilder()
-    .setCustomId("snake_settings_modal")
-    .setTitle("Snake Settings");
+    const modal = new ModalBuilder()
+      .setCustomId("snake_settings_modal")
+      .setTitle("Snake Settings");
 
-  const maxApples = new TextInputBuilder()
-    .setCustomId("max_apples")
-    .setLabel("Max Apples")
-    .setStyle(TextInputStyle.Short)
-    .setValue("1");
+    const maxApples = new TextInputBuilder()
+      .setCustomId("max_apples")
+      .setLabel("Max Apples")
+      .setStyle(TextInputStyle.Short)
+      .setValue(String(game.maxApples ?? 1));
 
-  const row = new ActionRowBuilder()
-    .addComponents(maxApples);
+    const row = new ActionRowBuilder().addComponents(maxApples);
 
-  modal.addComponents(row);
+    modal.addComponents(row);
 
-  await interaction.showModal(modal);
+    return interaction.showModal(modal);
+  }
+
+  // =====================
+  // MOVEMENT LOGIC
+  // =====================
+  const head = { ...game.snake[0] };
+
+  if (interaction.customId === "snake_up") head.y--;
+  if (interaction.customId === "snake_down") head.y++;
+  if (interaction.customId === "snake_left") head.x--;
+  if (interaction.customId === "snake_right") head.x++;
+
+  // prevent instant reverse / invalid move safety (optional but helpful)
+  const ateApple =
+    head.x === game.apple.x &&
+    head.y === game.apple.y;
+
+  // add new head
+  game.snake.unshift(head);
+
+  // apple logic
+  if (ateApple) {
+    game.score++;
+
+    game.apple = {
+      x: Math.floor(Math.random() * 8),
+      y: Math.floor(Math.random() * 8)
+    };
+  } else {
+    game.snake.pop();
+  }
+
+  // =====================
+  // GAME OVER CHECK
+  // =====================
+  const hitWall =
+    head.x < 0 || head.y < 0 || head.x > 7 || head.y > 7;
+
+  const hitSelf =
+    game.snake.slice(1).some(s => s.x === head.x && s.y === head.y);
+
+  if (hitWall || hitSelf) {
+    snakeGames.delete(interaction.channel.id);
+
+    return interaction.update({
+      content: "💀 Game Over",
+      components: []
+    });
+  }
+
+  // =====================
+  // UPDATE MESSAGE (IMPORTANT)
+  // =====================
+  return interaction.update({
+    content: renderSnake(game),
+    components: snakeButtons()
+  });
 }
-
   //minesweepper
   if (interaction.isButton()) {
 
