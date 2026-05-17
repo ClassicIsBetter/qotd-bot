@@ -419,7 +419,7 @@ function renderMinesweeper(game) {
   const letters = ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫"];
 
   let text =
-`   1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣
+`   ⬛1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣
 `;
 
   for (let y = 0; y < game.size; y++) {
