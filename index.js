@@ -582,19 +582,21 @@ function snakeButtons() {
           )
           .setDisabled(true),
 
-new ActionRowBuilder().addComponents(
-  new ButtonBuilder()
-    .setCustomId("snake_up")
-    .setLabel("⬆️")
-    .setStyle(ButtonStyle.Primary),
+new ActionRowBuilder()
+  .addComponents(
+    new ButtonBuilder()
+      .setCustomId("up")
+      .setLabel("⬆️")
+      .setStyle(ButtonStyle.Primary),
 
-  new ButtonBuilder()
-    .setCustomId("snake_settings")
-    .setLabel("⚙️ Settings")
-    .setStyle(ButtonStyle.Secondary)
-),
+    new ButtonBuilder()
+      .setCustomId("snake_settings")
+      .setLabel("⚙️ Settings")
+      .setStyle(ButtonStyle.Secondary)
+  ),
 
-new ActionRowBuilder().addComponents(
+new ActionRowBuilder()
+  .addComponents(
         new ButtonBuilder()
           .setCustomId("snake_left")
           .setLabel("⬅️")
