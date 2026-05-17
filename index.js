@@ -106,6 +106,10 @@ let qotdNumber = 24;
 const snakeGames = new Map();
 const minesweeperGames = new Map();
 
+const snakeSettings = {
+  maxApples: 3
+};
+
 console.log("Bot starting...");
 
 // =====================
@@ -548,8 +552,9 @@ function moveSnake(game) {
         )
       ) {
 
-        game.apple = newApple;
-        valid = true;
+        if (currentApples < snakeSettings.maxApples) {
+  spawnApple();
+}
       }
     }
 
@@ -582,7 +587,12 @@ function snakeButtons() {
           .setLabel("⬆️")
           .setStyle(
             ButtonStyle.Primary
-          )
+          ),
+          new ButtonBuilder()
+    .setCustomId("snake_settings")
+    .setLabel("⚙️ Settings")
+    .setStyle(ButtonStyle.Secondary)
+);
       ),
 
     new ActionRowBuilder()
@@ -768,6 +778,35 @@ client.on(
     // MODAL SUBMIT
     // =====================
     if (interaction.isModalSubmit()) {
+
+      if (interaction.isModalSubmit() && interaction.customId === "snake_settings_modal") {
+
+  const input = interaction.fields.getTextInputValue("max_apples");
+  const value = parseInt(input);
+
+  // safety check
+  if (isNaN(value) || value < 1 || value > 20) {
+    return interaction.reply({
+      content: "Please enter a number between 1 and 20.",
+      ephemeral: true
+    });
+  }
+
+  // make sure settings object exists
+  if (!global.snakeSettings) {
+    global.snakeSettings = {
+      maxApples: 3
+    };
+  }
+
+  // save setting
+  snakeSettings.maxApples = value;
+
+  return interaction.reply({
+    content: `✅ Max apples set to **${value}**`,
+    ephemeral: true
+  });
+}
 
       if (
         interaction.customId ===
@@ -1038,6 +1077,27 @@ ${renderSnake(game)}`,
         snakeButtons()
     });
   }
+
+  //snek settings
+  if (interaction.isButton() && interaction.customId === "snake_settings") {
+
+  const modal = new ModalBuilder()
+    .setCustomId("snake_settings_modal")
+    .setTitle("Snake Settings");
+
+  const maxApples = new TextInputBuilder()
+    .setCustomId("max_apples")
+    .setLabel("Max Apples")
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder("e.g. 3")
+    .setRequired(true);
+
+  const row = new ActionRowBuilder().addComponents(maxApples);
+
+  modal.addComponents(row);
+
+  return interaction.showModal(modal);
+}
 
   //minesweepper
   if (interaction.isButton()) {
