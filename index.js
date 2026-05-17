@@ -416,7 +416,7 @@ function floodFill(game, x, y) {
 // render
 function renderMinesweeper(game) {
 
-  const letters = "ABCDEF";
+  const letters = ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫"];
 
   let text =
 `   1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣
