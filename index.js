@@ -618,6 +618,7 @@ new ActionRowBuilder()
             ButtonStyle.Primary
           )
       )
+    )
   ];
 }
 // =====================
