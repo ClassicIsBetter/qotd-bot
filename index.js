@@ -1373,9 +1373,14 @@ if (interaction.commandName === 'snake') {
   const game = {
     userId: interaction.user.id,
 
-    snake: [{ x: 4, y: 4 }],
+    snake: [
+      { x: 4, y: 4 }
+    ],
 
-    apple: { x: 2, y: 2 },
+    apple: {
+      x: 2,
+      y: 2
+    },
 
     direction: "right",
 
@@ -1384,7 +1389,7 @@ if (interaction.commandName === 'snake') {
     over: false
   };
 
-  await interaction.reply({
+  const msg = await interaction.reply({
     content:
 `# Snake
 
@@ -1394,9 +1399,7 @@ ${renderSnake(game)}`,
     components: snakeButtons()
   });
 
-  const msg = await interaction.fetchReply();
-
-  // ✅ FIX: use channel.id (NOT message.id)
+  // IMPORTANT: use channel.id so movement can find it
   snakeGames.set(interaction.channel.id, game);
 }
 
