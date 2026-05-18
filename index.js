@@ -98,7 +98,7 @@ Check if the bot is alive
 // =====================
 // STATE
 // =====================
-let qotdNumber = 24;
+let qotdNumber = 25;
 
 // =====================
 // SNAKE GAMES
