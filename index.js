@@ -175,6 +175,17 @@ const commands = [
     .setName('snake')
     .setDescription('Play snake')
     .toJSON()
+
+  new SlashCommandBuilder()
+    .setName('status')
+    .setDescription('Set bot status')
+    .addStringOption(option =>
+     option
+      .setName('text')
+      .setDescription('Status text')
+      .setRequired(true)
+  )
+  .toJSON()
 ];
 
 // =====================
@@ -1071,6 +1082,47 @@ ${renderSnake(game)}`,
       });
     }
 
+    // status
+    if (
+      interaction.commandName ===
+      'status'
+    ) {
+
+      // owner check
+      if (
+        interaction.user.id !==
+        OWNER_ID
+      ) {
+
+        return interaction.reply({
+          content:
+            "No permission.",
+          ephemeral: true
+        });
+      }
+
+      const text =
+        interaction.options.getString(
+          'text'
+        );
+
+      client.user.setPresence({
+        activities: [
+          {
+            name: text,
+            type: 4
+          }
+        ],
+        status: 'online'
+      });
+
+      return interaction.reply({
+        content:
+          `Status changed to: ${text}`,
+        ephemeral: true
+      });
+    }
+    
     // sendqotd
     if (
       interaction.commandName ===
