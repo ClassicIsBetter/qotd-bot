@@ -107,6 +107,17 @@ const snakeGames = new Map();
 
 console.log("Bot starting...");
 
+
+// =====================
+// CLIENT
+// =====================
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages
+  ]
+});
+
 //status
 client.once('ready', () => {
     client.user.setPresence({
@@ -121,16 +132,6 @@ client.once('ready', () => {
 });
 
 console.log("tried to set status");
-
-// =====================
-// CLIENT
-// =====================
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages
-  ]
-});
 
 // =====================
 // COMMANDS
