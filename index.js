@@ -107,6 +107,21 @@ const snakeGames = new Map();
 
 console.log("Bot starting...");
 
+//status
+client.once('ready', () => {
+    client.user.setPresence({
+        activities: [
+            {
+                name: 'very cool test, wow',
+                type: 4
+            }
+        ],
+        status: 'online'
+    });
+});
+
+console.log("tried to set status");
+
 // =====================
 // CLIENT
 // =====================
