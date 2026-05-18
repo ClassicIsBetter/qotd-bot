@@ -174,7 +174,7 @@ const commands = [
   new SlashCommandBuilder()
     .setName('snake')
     .setDescription('Play snake')
-    .toJSON()
+    .toJSON(),
 
   new SlashCommandBuilder()
     .setName('status')
