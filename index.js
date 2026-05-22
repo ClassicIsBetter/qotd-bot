@@ -69,21 +69,27 @@ const simpleCommands = {
 
     message:
 `
+**-----QOTD-----**
 /suggestqotd
 Suggest a QOTD
 
 /qotdqueue
-View your queued QOTDs + statuses
+View your queued QOTDs + statuses(currently down)
 
 /sendqotd
-Force send oldest QOTD
+Force send oldest QOTD(owner only)
 
 /forceqotd
-Force send a specific queued QOTD
+Force send a specific queued QOTD(owner only)
 
+**-----Games/Fun-----**
 /snake
 Play snake
 
+/askai
+ask ChatGPT 3.5 Turbo anything(has proper chat memory, resets after 20 messages)
+
+**-----Other-----**
 /help
 Shows this command list
 
