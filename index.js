@@ -105,6 +105,7 @@ const axios = require("axios");
 // SNAKE GAMES
 // =====================
 const snakeGames = new Map();
+const aiConversations = new Map();
 
 console.log("Bot starting...");
 
@@ -1137,60 +1138,99 @@ ${renderSnake(game)}`,
       });
     }
    // askai
-    if (
-      interaction.commandName ===
-      'askai'
-    ) {
+if (
+  interaction.commandName ===
+  'askai'
+) {
 
-      const question =
-        interaction.options.getString(
-          'question'
-        );
+  const question =
+    interaction.options.getString(
+      'question'
+    );
 
-      await interaction.deferReply();
+  await interaction.deferReply();
 
-      try {
+  try {
 
-        const response =
-          await axios.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            {
-              model: "openai/gpt-3.5-turbo",
+    // get old convo
+    let history =
+      aiConversations.get(
+        interaction.user.id
+      ) || [];
 
-              messages: [
-                {
-                  role: "user",
-                  content: question
-                }
-              ]
-            },
-            {
-              headers: {
-                Authorization:
-                  `Bearer ${process.env.OPENROUTER_KEY}`,
+    // add user message
+    history.push({
+      role: "user",
+      content: question
+    });
 
-                "Content-Type":
-                  "application/json"
-              }
-            }
-          );
+    // warn + reset after 20 messages
+    let warning = "";
 
-        const reply =
-          response.data
-            .choices[0]
-            .message.content;
+    if (history.length >= 20) {
 
-        await interaction.editReply(reply);
+      warning =
+        "\n\n⚠️ Memory full, conversation was reset after this message.";
 
-      } catch (err) {
-
-        console.error(err);
-
-        await interaction.editReply(
-          "AI exploded 😭"
-        );
-      }
+      // keep current message only
+      history = [
+        {
+          role: "user",
+          content: question
+        }
+      ];
     }
+
+    const response =
+      await axios.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          model:
+            "meta-llama/llama-3-8b-instruct:free",
+
+          messages: history
+        },
+        {
+          headers: {
+            Authorization:
+              `Bearer ${process.env.OPENROUTER_KEY}`,
+
+            "Content-Type":
+              "application/json"
+          }
+        }
+      );
+
+    const reply =
+      response.data
+        .choices[0]
+        .message.content;
+
+    // save ai response too
+    history.push({
+      role: "assistant",
+      content: reply
+    });
+
+    // save convo
+    aiConversations.set(
+      interaction.user.id,
+      history
+    );
+
+    await interaction.editReply(
+      reply + warning
+    );
+
+  } catch (err) {
+
+    console.error(err);
+
+    await interaction.editReply(
+      "AI exploded 😭"
+    );
+  }
+}
     
     // sendqotd
     if (
