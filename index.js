@@ -1258,7 +1258,7 @@ if (
     }
   }
 );
-// ) <- the evil bracket, has caused 1 crime as of beta 0.3
+// ) <- the evil bracket, has caused 1 crime
 // =====================
 // LOGIN
 // =====================
