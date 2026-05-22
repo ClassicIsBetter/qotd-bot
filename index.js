@@ -1186,7 +1186,7 @@ if (
         "https://openrouter.ai/api/v1/chat/completions",
         {
           model:
-            "meta-llama/llama-3-8b-instruct:free",
+            "openai/gpt-3.5-turbo",
 
           messages: history
         },
