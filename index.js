@@ -98,7 +98,8 @@ Check if the bot is alive
 // =====================
 // STATE
 // =====================
-let qotdNumber = 25;
+let qotdNumber = 29;
+const axios = require("axios");
 
 // =====================
 // SNAKE GAMES
@@ -183,6 +184,17 @@ const commands = [
      option
       .setName('text')
       .setDescription('Status text')
+      .setRequired(true)
+  )
+  .toJSON(),
+  
+  new SlashCommandBuilder()
+  .setName('askai')
+  .setDescription('Ask the AI something')
+  .addStringOption(option =>
+    option
+      .setName('question')
+      .setDescription('What to ask')
       .setRequired(true)
   )
   .toJSON()
@@ -478,6 +490,8 @@ async function postQOTD(content) {
 
   qotdNumber++;
 }
+
+
 
 // =====================
 // SEND QOTD
@@ -1121,6 +1135,61 @@ ${renderSnake(game)}`,
           `Status changed to: ${text}`,
         ephemeral: true
       });
+    }
+   // askai
+    if (
+      interaction.commandName ===
+      'askai'
+    ) {
+
+      const question =
+        interaction.options.getString(
+          'question'
+        );
+
+      await interaction.deferReply();
+
+      try {
+
+        const response =
+          await axios.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            {
+              model: "openai/gpt-3.5-turbo",
+
+              messages: [
+                {
+                  role: "user",
+                  content: question
+                }
+              ]
+            },
+            {
+              headers: {
+                Authorization:
+                  `Bearer ${process.env.OPENROUTER_KEY}`,
+
+                "Content-Type":
+                  "application/json"
+              }
+            }
+          );
+
+        const reply =
+          response.data
+            .choices[0]
+            .message.content;
+
+        await interaction.editReply(reply);
+
+      } catch (err) {
+
+        console.error(err);
+
+        await interaction.editReply(
+          "AI exploded 😭"
+        );
+      }
     }
     
     // sendqotd
