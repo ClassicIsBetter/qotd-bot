@@ -52,6 +52,22 @@ const presetQOTDs = [
 🐕 | Dogs`
 ];
 
+const eightBallResponses = [
+
+  "Yes.",
+  "No.",
+  "Probably.",
+  "Maybe.",
+  "Definitely.",
+  "Absolutely not.",
+  "Ask again later.",
+  "Most likely.",
+  "Very doubtful.",
+  "Without a doubt.",
+  "Signs point to yes.",
+  "I don't think so."
+];
+
 // =====================
 // SIMPLE COMMANDS
 // =====================
@@ -202,6 +218,17 @@ const commands = [
     option
       .setName('question')
       .setDescription('What to ask')
+      .setRequired(true)
+  )
+  .toJSON(),
+
+  new SlashCommandBuilder()
+  .setName('8ball')
+  .setDescription('Ask the 8ball something')
+  .addStringOption(option =>
+    option
+      .setName('question')
+      .setDescription('Your question')
       .setRequired(true)
   )
   .toJSON()
@@ -973,6 +1000,45 @@ ${renderSnake(game)}`,
       );
     }
 
+    // 8ball
+if (
+  interaction.commandName ===
+  '8ball'
+) {
+
+  const question =
+    interaction.options.getString(
+      'question'
+    );
+
+  const response =
+    eightBallResponses[
+      Math.floor(
+        Math.random() *
+        eightBallResponses.length
+      )
+    ];
+
+  return interaction.reply({
+    embeds: [
+
+      new EmbedBuilder()
+        .setTitle("🎱 Magic 8Ball")
+        .addFields(
+          {
+            name: "Question",
+            value: question
+          },
+          {
+            name: "Answer",
+            value: response
+          }
+        )
+        .setColor(0x000000)
+    ]
+  });
+}
+    
     // snake
     if (
       interaction.commandName ===
