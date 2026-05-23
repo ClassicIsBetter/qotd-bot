@@ -169,6 +169,8 @@ const commands = [
       .toJSON()
   ),
 
+  
+
   new SlashCommandBuilder()
     .setName('suggestqotd')
     .setDescription('Suggest a QOTD')
@@ -231,7 +233,19 @@ const commands = [
       .setDescription('Your question')
       .setRequired(true)
   )
-  .toJSON()
+  .toJSON(),
+
+    new SlashCommandBuilder()
+  .setName('dice')
+  .setDescription('Roll a dice')
+  .addIntegerOption(option =>
+    option
+      .setName('max')
+      .setDescription('Maximum number')
+      .setRequired(true)
+  )
+  .toJSON(),
+      
 ];
 
 // =====================
@@ -1000,17 +1014,7 @@ ${renderSnake(game)}`,
       );
     }
 
-    new SlashCommandBuilder()
-  .setName('dice')
-  .setDescription('Roll a dice')
-  .addIntegerOption(option =>
-    option
-      .setName('max')
-      .setDescription('Maximum number')
-      .setRequired(true)
-  )
-  .toJSON(),
-      
+  
 
 
     // snake
