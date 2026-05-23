@@ -157,6 +157,22 @@ client.once('ready', () => {
 
 console.log("tried to set status");
 
+
+function rgbToEmoji(r, g, b) {
+
+  if (r > g + 40 && r > b + 40) return "🟥";
+  if (g > r + 40 && g > b + 40) return "🟩";
+  if (b > r + 40 && b > g + 40) return "🟦";
+
+  if (r > 180 && g > 180 && b < 120) return "🟨";
+  if (r > 100 && g > 50 && b < 80) return "🟫";
+
+  if (r < 60 && g < 60 && b < 60) return "⬛";
+  if (r > 200 && g > 200 && b > 200) return "⬜";
+
+  return "🔳";
+}
+
 // =====================
 // COMMANDS
 // =====================
@@ -1227,7 +1243,7 @@ if (
 }
 
 
-    if (interaction.commandName === "img8x8") {
+if (interaction.commandName === "img8x8") {
 
   await interaction.deferReply();
 
@@ -1240,10 +1256,12 @@ if (
     });
 
     const image = await sharp(res.data)
-      .resize(8, 8)
-      .greyscale()
+      .resize(8, 8, { fit: "cover" })
       .raw()
-      .toBuffer();
+      .toBuffer({ resolveWithObject: true });
+
+    const data = image.data;
+    const info = image.info;
 
     let output = "";
 
@@ -1253,14 +1271,13 @@ if (
 
       for (let x = 0; x < 8; x++) {
 
-        const pixel = image[y * 8 + x];
+        const i = (y * 8 + x) * info.channels;
 
-        // brightness → emoji
-        if (pixel > 200) row += "⬜";
-        else if (pixel > 150) row += "🟨";
-        else if (pixel > 100) row += "🟧";
-        else if (pixel > 50) row += "🟫";
-        else row += "⬛";
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        row += rgbToEmoji(r, g, b);
       }
 
       output += row + "\n";
@@ -1272,8 +1289,10 @@ if (
 
   } catch (err) {
 
+    console.error(err);
+
     return interaction.editReply(
-      "Failed to process image."
+      "❌ Unable to process image."
     );
   }
 }
