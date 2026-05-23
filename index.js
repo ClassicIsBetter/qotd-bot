@@ -1011,44 +1011,6 @@ ${renderSnake(game)}`,
   )
   .toJSON(),
       
-    // 8ball
-if (
-  interaction.commandName ===
-  '8ball'
-) {
-
-  const question =
-    interaction.options.getString(
-      'question'
-    );
-
-  const response =
-    eightBallResponses[
-      Math.floor(
-        Math.random() *
-        eightBallResponses.length
-      )
-    ];
-
-  return interaction.reply({
-    embeds: [
-
-      new EmbedBuilder()
-        .setTitle("8Ball Response")
-        .addFields(
-          {
-            name: "Question",
-            value: question
-          },
-          {
-            name: "Answer",
-            value: response
-          }
-        )
-        .setColor(0x000000)
-    ]
-  });
-}
 
     // dice
 if (
@@ -1227,6 +1189,47 @@ ${renderSnake(game)}`,
         ephemeral: true
       });
     }
+
+
+        // 8ball
+if (
+  interaction.commandName ===
+  '8ball'
+) {
+
+  const question =
+    interaction.options.getString(
+      'question'
+    );
+
+  const response =
+    eightBallResponses[
+      Math.floor(
+        Math.random() *
+        eightBallResponses.length
+      )
+    ];
+
+  return interaction.reply({
+    embeds: [
+
+      new EmbedBuilder()
+        .setTitle("8Ball Response")
+        .addFields(
+          {
+            name: "Question",
+            value: question
+          },
+          {
+            name: "Answer",
+            value: response
+          }
+        )
+        .setColor(0x000000)
+    ]
+  });
+}
+
 
     // status
     if (
