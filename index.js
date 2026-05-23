@@ -1023,7 +1023,7 @@ if (
     embeds: [
 
       new EmbedBuilder()
-        .setTitle("🎱 Magic 8Ball")
+        .setTitle("8Ball Response")
         .addFields(
           {
             name: "Question",
