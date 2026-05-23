@@ -212,6 +212,17 @@ const commands = [
   .setDescription('Shows user info')
   .toJSON(),
 
+  new SlashCommandBuilder()
+  .setName('img8x8')
+  .setDescription('Convert an image into an 8x8 emoji grid')
+  .addStringOption(option =>
+    option
+      .setName('url')
+      .setDescription('Image URL')
+      .setRequired(true)
+  )
+  .toJSON(),
+
 
   new SlashCommandBuilder()
   .setName('betterbot')
@@ -665,6 +676,10 @@ client.once('ready', () => {
 client.on(
   'interactionCreate',
   async (interaction) => {
+
+
+    const axios = require("axios");
+    const sharp = require("sharp");
 
     // =====================
     // MODAL SUBMIT
@@ -1210,9 +1225,58 @@ if (
     ]
   });
 }
-    
 
 
+    if (interaction.commandName === "img8x8") {
+
+  await interaction.deferReply();
+
+  const url = interaction.options.getString("url");
+
+  try {
+
+    const res = await axios.get(url, {
+      responseType: "arraybuffer"
+    });
+
+    const image = await sharp(res.data)
+      .resize(8, 8)
+      .greyscale()
+      .raw()
+      .toBuffer();
+
+    let output = "";
+
+    for (let y = 0; y < 8; y++) {
+
+      let row = "";
+
+      for (let x = 0; x < 8; x++) {
+
+        const pixel = image[y * 8 + x];
+
+        // brightness → emoji
+        if (pixel > 200) row += "⬜";
+        else if (pixel > 150) row += "🟨";
+        else if (pixel > 100) row += "🟧";
+        else if (pixel > 50) row += "🟫";
+        else row += "⬛";
+      }
+
+      output += row + "\n";
+    }
+
+    return interaction.editReply(
+      "```\n" + output + "\n```"
+    );
+
+  } catch (err) {
+
+    return interaction.editReply(
+      "Failed to process image."
+    );
+  }
+}
         // 8ball
 if (
   interaction.commandName ===
