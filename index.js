@@ -160,19 +160,83 @@ console.log("tried to set status");
 
 function rgbToEmoji(r, g, b) {
 
-  if (r > g + 40 && r > b + 40) return "🟥";
-  if (g > r + 40 && g > b + 40) return "🟩";
-  if (b > r + 40 && b > g + 40) return "🟦";
+  // white
+  if (r > 220 && g > 220 && b > 220)
+    return "⬜";
 
-  if (r > 180 && g > 180 && b < 120) return "🟨";
-  if (r > 100 && g > 50 && b < 80) return "🟫";
+  // black
+  if (r < 40 && g < 40 && b < 40)
+    return "⬛";
 
-  if (r < 60 && g < 60 && b < 60) return "⬛";
-  if (r > 200 && g > 200 && b > 200) return "⬜";
+  // gray
+  if (
+    Math.abs(r - g) < 20 &&
+    Math.abs(g - b) < 20
+  ) {
 
-  return "🔳";
+    if (r > 160)
+      return "⬜";
+
+    if (r > 80)
+      return "⬜";
+
+    return "⬛";
+  }
+
+  // strong colours
+  if (r > 180 && g < 100 && b < 100)
+    return "🟥";
+
+  if (g > 180 && r < 100 && b < 100)
+    return "🟩";
+
+  if (b > 180 && r < 100 && g < 100)
+    return "🟦";
+
+  // yellow
+  if (r > 180 && g > 180 && b < 120)
+    return "🟨";
+
+  // orange
+  if (r > 200 && g > 120 && g < 190 && b < 100)
+    return "🟧";
+
+  // purple
+  if (r > 120 && b > 120 && g < 100)
+    return "🟪";
+
+  // brown
+  if (r > 100 && g > 50 && b < 80)
+    return "🟫";
+
+  // cyan-ish
+  if (g > 150 && b > 150 && r < 120)
+    return "🟦";
+
+  // pink-ish
+  if (r > 200 && b > 150)
+    return "🩷";
+
+  // RANDOM fallback instead of 🔳
+  const randomColors = [
+    "🟥",
+    "🟧",
+    "🟨",
+    "🟩",
+    "🟦",
+    "🟪",
+    "🟫",
+    "⬜",
+    "⬛"
+  ];
+
+  return randomColors[
+    Math.floor(
+      Math.random() *
+      randomColors.length
+    )
+  ];
 }
-
 // =====================
 // COMMANDS
 // =====================
