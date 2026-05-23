@@ -208,6 +208,11 @@ const commands = [
   .toJSON(),
 
   new SlashCommandBuilder()
+  .setName('userinfo')
+  .setDescription('Shows user info')
+  .toJSON(),
+
+  new SlashCommandBuilder()
     .setName('status')
     .setDescription('Set bot status')
     .addStringOption(option =>
@@ -1241,7 +1246,65 @@ if (
   });
 }
 
+    // userinfo
+if (
+  interaction.commandName ===
+  'userinfo'
+) {
 
+  const member =
+    interaction.member;
+
+  const user =
+    interaction.user;
+
+  const joinedServer =
+    `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>`;
+
+  const createdAccount =
+    `<t:${Math.floor(user.createdTimestamp / 1000)}:R>`;
+
+  const embed =
+    new EmbedBuilder()
+      .setTitle(
+        `${user.username}'s Info`
+      )
+      .setThumbnail(
+        user.displayAvatarURL()
+      )
+      .setColor(0x5865F2)
+      .addFields(
+
+        {
+          name: "Username",
+          value: user.tag,
+          inline: true
+        },
+
+        {
+          name: "User ID",
+          value: user.id,
+          inline: true
+        },
+
+
+        {
+          name: "Account Created",
+          value: createdAccount,
+          inline: false
+        },
+
+        {
+          name: "Joined Server",
+          value: joinedServer,
+          inline: false
+        }
+      );
+
+  return interaction.reply({
+    embeds: [embed]
+  });
+}
     // serverinfo
 if (
   interaction.commandName ===
