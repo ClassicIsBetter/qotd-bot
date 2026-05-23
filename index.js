@@ -212,6 +212,12 @@ const commands = [
   .setDescription('Shows user info')
   .toJSON(),
 
+
+  new SlashCommandBuilder()
+  .setName('betterbot')
+  .setDescription('Compare The Silly Bot and MangoBot')
+  .toJSON(),
+
   new SlashCommandBuilder()
     .setName('status')
     .setDescription('Set bot status')
@@ -1363,6 +1369,58 @@ if (
     );
 
   await interaction.reply({
+    embeds: [embed]
+  });
+}
+
+
+    // betterbot
+if (
+  interaction.commandName ===
+  'betterbot'
+) {
+
+  const embed =
+    new EmbedBuilder()
+      .setTitle(
+        "🤖 Bot Comparison"
+      )
+      .setColor(0x00b0f4)
+
+      .addFields(
+
+        {
+          name: "**MangoBot**",
+          value:
+`
+• mango
+• owner thinks that i am copying MangoBot
+• cool
+• is better set up and is actually public compared to The Silly Bot
+`,
+          inline: true
+        },
+
+        {
+          name: "The Silly Bot",
+          value:
+`
+• 1 game
+• qotd system
+• /askai command that actually works
+• silly
+• made by me
+`,
+          inline: true
+        }
+      )
+
+      .setFooter({
+        text:
+          "unbiased comparison"
+      });
+
+  return interaction.reply({
     embeds: [embed]
   });
 }
