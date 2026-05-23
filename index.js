@@ -1012,54 +1012,7 @@ ${renderSnake(game)}`,
   .toJSON(),
       
 
-    // dice
-if (
-  interaction.commandName ===
-  'dice'
-) {
 
-  const max =
-    interaction.options.getInteger(
-      'max'
-    );
-
-  // stop weird numbers
-  if (max < 1) {
-
-    return interaction.reply({
-      content:
-        "Max number must be at least 1.",
-      ephemeral: true
-    });
-  }
-
-  const roll =
-    Math.floor(
-      Math.random() * max
-    ) + 1;
-
-  return interaction.reply({
-    embeds: [
-
-      new EmbedBuilder()
-        .setTitle("Roll Dice")
-        .addFields(
-          {
-            name: "Max Number",
-            value: max.toString(),
-            inline: true
-          },
-          {
-            name: "You Rolled",
-            value: roll.toString(),
-            inline: true
-          }
-        )
-        .setColor(0xffffff)
-    ]
-  });
-}
-    
     // snake
     if (
       interaction.commandName ===
@@ -1189,6 +1142,55 @@ ${renderSnake(game)}`,
         ephemeral: true
       });
     }
+
+        // dice
+if (
+  interaction.commandName ===
+  'dice'
+) {
+
+  const max =
+    interaction.options.getInteger(
+      'max'
+    );
+
+  // stop weird numbers
+  if (max < 1) {
+
+    return interaction.reply({
+      content:
+        "Max number must be at least 1.",
+      ephemeral: true
+    });
+  }
+
+  const roll =
+    Math.floor(
+      Math.random() * max
+    ) + 1;
+
+  return interaction.reply({
+    embeds: [
+
+      new EmbedBuilder()
+        .setTitle("Roll Dice")
+        .addFields(
+          {
+            name: "Max Number",
+            value: max.toString(),
+            inline: true
+          },
+          {
+            name: "You Rolled",
+            value: roll.toString(),
+            inline: true
+          }
+        )
+        .setColor(0xffffff)
+    ]
+  });
+}
+    
 
 
         // 8ball
