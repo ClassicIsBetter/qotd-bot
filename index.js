@@ -1000,6 +1000,17 @@ ${renderSnake(game)}`,
       );
     }
 
+    new SlashCommandBuilder()
+  .setName('dice')
+  .setDescription('Roll a dice')
+  .addIntegerOption(option =>
+    option
+      .setName('max')
+      .setDescription('Maximum number')
+      .setRequired(true)
+  )
+  .toJSON(),
+      
     // 8ball
 if (
   interaction.commandName ===
@@ -1035,6 +1046,54 @@ if (
           }
         )
         .setColor(0x000000)
+    ]
+  });
+}
+
+    // dice
+if (
+  interaction.commandName ===
+  'dice'
+) {
+
+  const max =
+    interaction.options.getInteger(
+      'max'
+    );
+
+  // stop weird numbers
+  if (max < 1) {
+
+    return interaction.reply({
+      content:
+        "Max number must be at least 1.",
+      ephemeral: true
+    });
+  }
+
+  const roll =
+    Math.floor(
+      Math.random() * max
+    ) + 1;
+
+  return interaction.reply({
+    embeds: [
+
+      new EmbedBuilder()
+        .setTitle("Roll Dice")
+        .addFields(
+          {
+            name: "Max Number",
+            value: max.toString(),
+            inline: true
+          },
+          {
+            name: "You Rolled",
+            value: roll.toString(),
+            inline: true
+          }
+        )
+        .setColor(0xffffff)
     ]
   });
 }
