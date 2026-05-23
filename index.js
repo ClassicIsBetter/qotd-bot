@@ -1383,7 +1383,7 @@ if (
   const embed =
     new EmbedBuilder()
       .setTitle(
-        "🤖 Bot Comparison"
+        "Whats the better bot"
       )
       .setColor(0x00b0f4)
 
