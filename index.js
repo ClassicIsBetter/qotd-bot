@@ -160,21 +160,21 @@ console.log("tried to set status");
 
 function rgbToEmoji(r, g, b) {
 
+  // black
+  if (r < 35 && g < 35 && b < 35)
+    return "⬛";
+
   // white
   if (r > 220 && g > 220 && b > 220)
     return "⬜";
 
-  // black
-  if (r < 40 && g < 40 && b < 40)
-    return "⬛";
-
   // gray
   if (
-    Math.abs(r - g) < 20 &&
-    Math.abs(g - b) < 20
+    Math.abs(r - g) < 15 &&
+    Math.abs(g - b) < 15
   ) {
 
-    if (r > 160)
+    if (r > 170)
       return "⬜";
 
     if (r > 80)
@@ -183,59 +183,93 @@ function rgbToEmoji(r, g, b) {
     return "⬛";
   }
 
-  // strong colours
-  if (r > 180 && g < 100 && b < 100)
+  // RED
+  if (
+    r > g + 40 &&
+    r > b + 40
+  ) {
+
+    // orange
+    if (
+      g > 100 &&
+      b < 80
+    ) {
+      return "🟧";
+    }
+
+    // pink
+    if (
+      b > 120
+    ) {
+      return "🟪";
+    }
+
     return "🟥";
+  }
 
-  if (g > 180 && r < 100 && b < 100)
+  // GREEN
+  if (
+    g > r + 30 &&
+    g > b + 30
+  ) {
+
     return "🟩";
+  }
 
-  if (b > 180 && r < 100 && g < 100)
+  // BLUE
+  if (
+    b > r + 30 &&
+    b > g + 30
+  ) {
+
+    // cyan
+    if (g > 120)
+      return "🟦";
+
     return "🟦";
+  }
 
   // yellow
-  if (r > 180 && g > 180 && b < 120)
-    return "🟨";
+  if (
+    r > 170 &&
+    g > 170 &&
+    b < 120
+  ) {
 
-  // orange
-  if (r > 200 && g > 120 && g < 190 && b < 100)
-    return "🟧";
+    return "🟨";
+  }
 
   // purple
-  if (r > 120 && b > 120 && g < 100)
+  if (
+    r > 120 &&
+    b > 120 &&
+    g < 100
+  ) {
+
     return "🟪";
+  }
 
-  // brown
-  if (r > 100 && g > 50 && b < 80)
+  // ACTUAL brown
+  if (
+    r > 90 &&
+    r < 170 &&
+    g > 40 &&
+    g < 110 &&
+    b < 70
+  ) {
+
     return "🟫";
+  }
 
-  // cyan-ish
-  if (g > 150 && b > 150 && r < 120)
-    return "🟦";
+  // fallback:
+  // choose MOST dominant colour
+  if (r >= g && r >= b)
+    return "🟥";
 
-  // pink-ish
-  if (r > 200 && b > 150)
-    return "🩷";
+  if (g >= r && g >= b)
+    return "🟩";
 
-  // RANDOM fallback instead of 🔳
-  const randomColors = [
-    "🟥",
-    "🟧",
-    "🟨",
-    "🟩",
-    "🟦",
-    "🟪",
-    "🟫",
-    "⬜",
-    "⬛"
-  ];
-
-  return randomColors[
-    Math.floor(
-      Math.random() *
-      randomColors.length
-    )
-  ];
+  return "🟦";
 }
 // =====================
 // COMMANDS
