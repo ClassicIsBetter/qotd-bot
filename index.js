@@ -1661,44 +1661,47 @@ ${renderMine(game)}`
 
 
 // work
-// work
-if (
-  interaction.commandName ===
-  'work'
-) {
+if (interaction.commandName === "work") {
 
-  const userId =
-    interaction.user.id;
+  const userId = interaction.user.id;
 
   const earned =
-    Math.floor(
-      Math.random() * 50
-    ) + 10;
+    Math.floor(Math.random() * 50) + 10;
 
-  // get current coins
-  const {
-    data: existing
-  } = await supabase
-    .from('coins')
-    .select('*')
-    .eq('user_id', userId)
-    .single();
+  // get current data safely
+  const { data, error } = await supabase
+    .from("coins")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
 
-  let coins = 0;
-
-  if (existing) {
-    coins = existing.coins;
+  if (error) {
+    console.log(error);
+    return interaction.reply({
+      content: "Database error.",
+      ephemeral: true
+    });
   }
+
+  let coins = data?.coins || 0;
 
   coins += earned;
 
-  // save coins
-  await supabase
-    .from('coins')
+  // save back to database
+  const { error: upsertError } = await supabase
+    .from("coins")
     .upsert({
       user_id: userId,
       coins: coins
     });
+
+  if (upsertError) {
+    console.log(upsertError);
+    return interaction.reply({
+      content: "Failed to save coins.",
+      ephemeral: true
+    });
+  }
 
   return interaction.reply({
     content:
