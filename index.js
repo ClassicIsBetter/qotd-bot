@@ -369,6 +369,7 @@ function saveDatabase() {
     "./database.json",
     JSON.stringify(database, null, 2)
   );
+  console.log("database saved");
 }
 
 // =====================
