@@ -168,6 +168,15 @@ client.once('ready', () => {
 
 console.log("tried to set status");
 
+// soup base :P
+const { createClient } =
+  require('@supabase/supabase-js');
+
+const supabase =
+  createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_KEY
+  );
 
 
 function createMineWorld() {
@@ -1652,29 +1661,44 @@ ${renderMine(game)}`
 
 
 // work
+// work
 if (
   interaction.commandName ===
   'work'
 ) {
 
-  const earned =
-    Math.floor(Math.random() * 50) + 10;
-
   const userId =
     interaction.user.id;
 
-  let coins =
-    await db.get(`coins_${userId}`);
+  const earned =
+    Math.floor(
+      Math.random() * 50
+    ) + 10;
 
-  if (!coins)
-    coins = 0;
+  // get current coins
+  const {
+    data: existing
+  } = await supabase
+    .from('coins')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  let coins = 0;
+
+  if (existing) {
+    coins = existing.coins;
+  }
 
   coins += earned;
 
-  await db.set(
-    `coins_${userId}`,
-    coins
-  );
+  // save coins
+  await supabase
+    .from('coins')
+    .upsert({
+      user_id: userId,
+      coins: coins
+    });
 
   return interaction.reply({
     content:
@@ -1684,25 +1708,26 @@ You now have ${coins} coins.`
   });
 }
 // leaderboard
+// leaderboard
 if (
   interaction.commandName ===
   'leaderboard'
 ) {
 
-  const all =
-    await db.all();
+  const {
+    data
+  } = await supabase
+    .from('coins')
+    .select('*')
+    .order('coins', {
+      ascending: false
+    })
+    .limit(10);
 
-  const coinUsers =
-    all
-      .filter(data =>
-        data.id.startsWith("coins_")
-      )
-      .sort((a, b) =>
-        b.value - a.value
-      )
-      .slice(0, 10);
-
-  if (coinUsers.length <= 0) {
+  if (
+    !data ||
+    data.length <= 0
+  ) {
 
     return interaction.reply(
       "Nobody has any coins yet."
@@ -1713,21 +1738,15 @@ if (
 
   for (
     let i = 0;
-    i < coinUsers.length;
+    i < data.length;
     i++
   ) {
 
-    const data =
-      coinUsers[i];
-
-    const userId =
-      data.id.replace(
-        "coins_",
-        ""
-      );
+    const user =
+      data[i];
 
     text +=
-`**${i + 1}.** <@${userId}> — 💰 ${data.value} coins\n`;
+`**${i + 1}.** <@${user.user_id}> — 💰 ${user.coins} coins\n`;
   }
 
   const embed =
@@ -1736,17 +1755,12 @@ if (
         "💰 Coin Leaderboard"
       )
       .setDescription(text)
-      .setColor(0xffd700)
-      .setFooter({
-        text:
-          `Top ${coinUsers.length} richest users`
-      });
+      .setColor(0xffd700);
 
   return interaction.reply({
     embeds: [embed]
   });
 }
-
     // setcoins
 // setcoins
 if (
@@ -1754,7 +1768,6 @@ if (
   'setcoins'
 ) {
 
-  // owner only
   if (
     interaction.user.id !==
     OWNER_ID
@@ -1777,11 +1790,12 @@ if (
       'amount'
     );
 
-  // save coins
-  await db.set(
-    `coins_${user.id}`,
-    amount
-  );
+  await supabase
+    .from('coins')
+    .upsert({
+      user_id: user.id,
+      coins: amount
+    });
 
   return interaction.reply({
     content:
