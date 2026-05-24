@@ -1651,89 +1651,93 @@ ${renderMine(game)}`
 }
 
 
-    // work
 // work
 if (
   interaction.commandName ===
   'work'
 ) {
 
+  const earned =
+    Math.floor(Math.random() * 50) + 10;
+
   const userId =
     interaction.user.id;
 
-  // create user if missing
-  if (
-    !database.users[userId]
-  ) {
+  let coins =
+    await db.get(`coins_${userId}`);
 
-    database.users[userId] = {
-      coins: 0
-    };
-  }
+  if (!coins)
+    coins = 0;
 
-  // random coins
-  const earned =
-    Math.floor(
-      Math.random() * 50
-    ) + 10;
+  coins += earned;
 
-  // add coins
-  database.users[userId].coins += earned;
+  await db.set(
+    `coins_${userId}`,
+    coins
+  );
 
-  // SAVE DATABASE
-  saveDatabase();
-
-  // reply
   return interaction.reply({
     content:
 `💰 You worked and earned ${earned} coins!
 
-You now have ${database.users[userId].coins} coins.`
+You now have ${coins} coins.`
   });
 }
     // leaderboard
+// leaderboard
 if (
   interaction.commandName ===
   'leaderboard'
 ) {
 
-  const users = Object.entries(database.users || {});
+  const all =
+    await db.all();
 
-  if (users.length === 0) {
+  const coinUsers =
+    all
+      .filter(data =>
+        data.id.startsWith("coins_")
+      )
+      .sort((a, b) =>
+        b.value - a.value
+      )
+      .slice(0, 10);
+
+  if (coinUsers.length <= 0) {
 
     return interaction.reply(
       "Nobody has any coins yet."
     );
   }
 
-  // sort highest first
-  users.sort(
-    (a, b) =>
-      (b[1].coins || 0) -
-      (a[1].coins || 0)
-  );
+  let text = "";
 
-  // top 10
-  const top = users
-    .slice(0, 10)
-    .map((user, index) => {
+  for (
+    let i = 0;
+    i < coinUsers.length;
+    i++
+  ) {
 
-      const userId = user[0];
-      const coins =
-        user[1].coins || 0;
+    const data =
+      coinUsers[i];
 
-      return `#${index + 1} <@${userId}> — 💰 ${coins}`;
-    })
-    .join("\n");
+    const userId =
+      data.id.replace(
+        "coins_",
+        ""
+      );
 
-  await interaction.reply({
+    text +=
+`${i + 1}. <@${userId}> — ${data.value} coins\n`;
+  }
+
+  return interaction.reply({
     content:
-`# 💰 Coin Leaderboard
+`# Coin Leaderboard
 
-${top}`
+${text}`
   });
 }
-
 
     // setcoins
 if (
