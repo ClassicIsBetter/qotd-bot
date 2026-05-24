@@ -421,7 +421,7 @@ const commands = [
 
   new SlashCommandBuilder()
   .setName('leaderboard')
-  .setDescription('View the richest users(balance)')
+  .setDescription('View the richest users (balance)')
   .toJSON(),
 
   new SlashCommandBuilder()
@@ -466,6 +466,11 @@ const commands = [
   new SlashCommandBuilder()
   .setName('minecraft')
   .setDescription('Start a minecraft world')
+  .toJSON(),
+
+  new SlashCommandBuilder()
+  .setName('daily')
+  .setDescription('Claim daily coins')
   .toJSON(),
 
   new SlashCommandBuilder()
@@ -1803,6 +1808,83 @@ if (
   return interaction.reply({
     content:
 `💰 Set ${user.username}'s coins to ${amount}.`
+  });
+}
+
+    // daily
+    if (interaction.commandName === "daily") {
+
+  const userId = interaction.user.id;
+
+  const today =
+    new Date().toISOString().split("T")[0];
+
+  const { data } = await supabase
+    .from("coins")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  let coins = data?.coins || 0;
+  let streak = data?.daily_streak || 0;
+  let last = data?.last_daily || null;
+
+  // already claimed today
+  if (last === today) {
+    return interaction.reply({
+      content: "❌ You already claimed your daily today.",
+      ephemeral: true
+    });
+  }
+
+  // check if streak continues or resets
+  if (last) {
+
+    const lastDate = new Date(last);
+    const todayDate = new Date(today);
+
+    const diff =
+      Math.floor(
+        (todayDate - lastDate) /
+        (1000 * 60 * 60 * 24)
+      );
+
+    if (diff === 1) {
+      streak += 1;
+    } else {
+      streak = 0;
+    }
+  } else {
+    streak = 0;
+  }
+
+  // formula: 100 * 1.2^streak
+  const multiplier =
+    Math.pow(1.2, streak);
+
+  const earned =
+    Math.floor(100 * multiplier);
+
+  coins += earned;
+
+  await supabase
+    .from("coins")
+    .upsert({
+      user_id: userId,
+      coins: coins,
+      daily_streak: streak,
+      last_daily: today
+    });
+
+  return interaction.reply({
+    content:
+`🎁 Daily Reward Claimed!
+
+🔥 Streak: ${streak}
+✨ Multiplier: x${multiplier.toFixed(2)}
+
+💰 You earned ${earned} coins!
+💰 Total: ${coins} coins`
   });
 }
         // 8ball
