@@ -1883,7 +1883,7 @@ if (
 🔥 Streak: ${streak}
 ✨ Multiplier: x${multiplier.toFixed(2)}
 
-💰 You earned ${earned} coins!
+💸 You earned ${earned} coins!
 💰 Total: ${coins} coins`
   });
 }
