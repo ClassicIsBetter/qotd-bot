@@ -128,9 +128,18 @@ const axios = require("axios");
 // =====================
 const snakeGames = new Map();
 const aiConversations = new Map();
+const mineGames = new Map();
 
 console.log("Bot starting...");
 
+const MINE_EMOJIS = {
+
+  grass: "<:Mine_grass:1507344590057902187>",
+  dirt: "<:Mine_dirt:1507344656781021285>",
+  stone: "<:Mine_stone:1507345387579772989>",
+  air: "<:Mine_air:1507344935836455093>",
+  player: "🐈"
+};
 
 // =====================
 // CLIENT
@@ -157,6 +166,75 @@ client.once('ready', () => {
 
 console.log("tried to set status");
 
+
+
+function createMineWorld() {
+
+  const world = [];
+
+  for (let y = 0; y < 10; y++) {
+
+    let row = [];
+
+    for (let x = 0; x < 10; x++) {
+
+      // top grass
+      if (y === 4)
+        row.push("grass");
+
+      // dirt
+      else if (y > 4 && y < 8)
+        row.push("dirt");
+
+      // stone
+      else if (y >= 8)
+        row.push("stone");
+
+      // sky
+      else
+        row.push("air");
+    }
+
+    world.push(row);
+  }
+
+  return world;
+}
+
+function renderMine(game) {
+
+  let output = "";
+
+  for (let y = 0; y < 10; y++) {
+
+    let row = "";
+
+    for (let x = 0; x < 10; x++) {
+
+      // player
+      if (
+        x === game.x &&
+        y === game.y
+      ) {
+
+        row += MINE_EMOJIS.player;
+      }
+
+      else {
+
+        const block =
+          game.world[y][x];
+
+        row +=
+          MINE_EMOJIS[block];
+      }
+    }
+
+    output += row + "\n";
+  }
+
+  return output;
+}
 
 function rgbToEmoji(r, g, b) {
 
@@ -324,6 +402,29 @@ const commands = [
   new SlashCommandBuilder()
   .setName('userinfo')
   .setDescription('Shows user info')
+  .toJSON(),
+
+
+  new SlashCommandBuilder()
+  .setName('minecraft')
+  .setDescription('Start a minecraft world')
+  .toJSON(),
+
+new SlashCommandBuilder()
+  .setName('minemove')
+  .setDescription('Move in minecraft')
+  .addStringOption(option =>
+    option
+      .setName('direction')
+      .setDescription('Direction')
+      .setRequired(true)
+      .addChoices(
+        { name: 'Up', value: 'up' },
+        { name: 'Down', value: 'down' },
+        { name: 'Left', value: 'left' },
+        { name: 'Right', value: 'right' }
+      )
+  )
   .toJSON(),
 
   new SlashCommandBuilder()
@@ -1393,6 +1494,94 @@ if (interaction.commandName === "img8x8") {
       "❌ Unable to process image."
     );
   }
+}
+
+    // minecraft
+if (
+  interaction.commandName ===
+  'minecraft'
+) {
+
+  const game = {
+
+    x: 5,
+    y: 2,
+
+    world:
+      createMineWorld()
+  };
+
+  mineGames.set(
+    interaction.user.id,
+    game
+  );
+
+  return interaction.reply({
+    content:
+`# Minecraft
+
+${renderMine(game)}`
+  });
+}
+
+// minemove
+if (
+  interaction.commandName ===
+  'minemove'
+) {
+
+  const direction =
+    interaction.options.getString(
+      'direction'
+    );
+
+  const game =
+    mineGames.get(
+      interaction.user.id
+    );
+
+  if (!game) {
+
+    return interaction.reply({
+      content:
+        "Start a world first with /minecraft",
+      ephemeral: true
+    });
+  }
+
+  let newX = game.x;
+  let newY = game.y;
+
+  if (direction === "up")
+    newY--;
+
+  if (direction === "down")
+    newY++;
+
+  if (direction === "left")
+    newX--;
+
+  if (direction === "right")
+    newX++;
+
+  // bounds
+  if (
+    newX >= 0 &&
+    newX < 10 &&
+    newY >= 0 &&
+    newY < 10
+  ) {
+
+    game.x = newX;
+    game.y = newY;
+  }
+
+  return interaction.reply({
+    content:
+`# Minecraft
+
+${renderMine(game)}`
+  });
 }
         // 8ball
 if (
