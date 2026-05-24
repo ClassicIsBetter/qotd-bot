@@ -396,8 +396,8 @@ const commands = [
       .toJSON()
   ),
 
-  
 
+  // command array
   new SlashCommandBuilder()
     .setName('suggestqotd')
     .setDescription('Suggest a QOTD')
@@ -439,6 +439,8 @@ const commands = [
   .setDescription('Work for coins')
   .toJSON(),
 
+  
+
   new SlashCommandBuilder()
   .setName('serverinfo')
   .setDescription('Shows info about the server')
@@ -453,6 +455,23 @@ const commands = [
   new SlashCommandBuilder()
   .setName('minecraft')
   .setDescription('Start a minecraft world')
+  .toJSON(),
+
+  new SlashCommandBuilder()
+  .setName('setcoins')
+  .setDescription('Set a users coins')
+  .addUserOption(option =>
+    option
+      .setName('user')
+      .setDescription('User')
+      .setRequired(true)
+  )
+  .addIntegerOption(option =>
+    option
+      .setName('amount')
+      .setDescription('Amount of coins')
+      .setRequired(true)
+  )
   .toJSON(),
 
 new SlashCommandBuilder()
@@ -1710,6 +1729,59 @@ if (
 `# 💰 Coin Leaderboard
 
 ${top}`
+  });
+}
+
+
+    // setcoins
+if (
+  interaction.commandName ===
+  'setcoins'
+) {
+
+  // owner only
+  if (
+    interaction.user.id !==
+    OWNER_ID
+  ) {
+
+    return interaction.reply({
+      content:
+        "No permission.",
+      ephemeral: true
+    });
+  }
+
+  const target =
+    interaction.options.getUser(
+      'user'
+    );
+
+  const amount =
+    interaction.options.getInteger(
+      'amount'
+    );
+
+  // create user if missing
+  if (
+    !database.users[target.id]
+  ) {
+
+    database.users[target.id] = {
+      coins: 0
+    };
+  }
+
+  // set coins
+  database.users[target.id].coins =
+    amount;
+
+  // save
+  saveDatabase();
+
+  return interaction.reply({
+    content:
+`💰 Set ${target.username}'s coins to ${amount}.`
   });
 }
         // 8ball
