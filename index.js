@@ -122,6 +122,8 @@ Check if the bot is alive
 // =====================
 let qotdNumber = 29;
 const axios = require("axios");
+const { QuickDB } = require("quick.db");
+const db = new QuickDB();
 
 // =====================
 // SNAKE GAMES
