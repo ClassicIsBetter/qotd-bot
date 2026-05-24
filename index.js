@@ -397,6 +397,11 @@ const commands = [
     .toJSON(),
 
   new SlashCommandBuilder()
+  .setName('leaderboard')
+  .setDescription('View the richest users(balance)')
+  .toJSON(),
+
+  new SlashCommandBuilder()
     .setName('forceqotd')
     .setDescription('Force send a specific queued QOTD')
     .addIntegerOption(option =>
@@ -1645,6 +1650,49 @@ if (
 `💰 You worked and earned ${earned} coins!
 
 You now have ${database[userId].coins} coins.`
+  });
+}
+
+    // leaderboard
+if (
+  interaction.commandName ===
+  'leaderboard'
+) {
+
+  const users = Object.entries(database.users || {});
+
+  if (users.length === 0) {
+
+    return interaction.reply(
+      "Nobody has any coins yet."
+    );
+  }
+
+  // sort highest first
+  users.sort(
+    (a, b) =>
+      (b[1].coins || 0) -
+      (a[1].coins || 0)
+  );
+
+  // top 10
+  const top = users
+    .slice(0, 10)
+    .map((user, index) => {
+
+      const userId = user[0];
+      const coins =
+        user[1].coins || 0;
+
+      return `#${index + 1} <@${userId}> — 💰 ${coins}`;
+    })
+    .join("\n");
+
+  await interaction.reply({
+    content:
+`# 💰 Coin Leaderboard
+
+${top}`
   });
 }
         // 8ball
