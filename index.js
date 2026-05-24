@@ -1890,7 +1890,7 @@ if (
 
   return interaction.reply({
     content:
-`🎁 Daily Reward Claimed!
+`**Daily Reward Claimed!**
 
 🔥 Streak: ${streak}
 ✨ Multiplier: x${multiplier.toFixed(2)}
