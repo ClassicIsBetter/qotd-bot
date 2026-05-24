@@ -172,11 +172,11 @@ function createMineWorld() {
 
   const world = [];
 
-  for (let y = 0; y < 10; y++) {
+  for (let y = 0; y < 6; y++) {
 
     let row = [];
 
-    for (let x = 0; x < 10; x++) {
+    for (let x = 0; x < 6; x++) {
 
       // top grass
       if (y === 4)
@@ -205,11 +205,11 @@ function renderMine(game) {
 
   let output = "";
 
-  for (let y = 0; y < 10; y++) {
+  for (let y = 0; y < 6; y++) {
 
     let row = "";
 
-    for (let x = 0; x < 10; x++) {
+    for (let x = 0; x < 6; x++) {
 
       // player
       if (
@@ -1504,7 +1504,7 @@ if (
 
   const game = {
 
-    x: 2,
+    x: 5,
     y: 2,
 
     world:
