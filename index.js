@@ -122,7 +122,6 @@ Check if the bot is alive
 // =====================
 let qotdNumber = 29;
 const axios = require("axios");
-const fs = require("fs");
 
 // =====================
 // SNAKE GAMES
@@ -356,22 +355,35 @@ function rgbToEmoji(r, g, b) {
 // DATABASE
 // =====================
 
-let database = {};
+const fs = require("fs");
 
-if (fs.existsSync("./database.json")) {
+let database = {
+  users: {}
+};
+
+if (
+  fs.existsSync("./database.json")
+) {
+
   database = JSON.parse(
-    fs.readFileSync("./database.json", "utf8")
+    fs.readFileSync(
+      "./database.json",
+      "utf8"
+    )
   );
 }
 
 function saveDatabase() {
+
   fs.writeFileSync(
     "./database.json",
-    JSON.stringify(database, null, 2)
+    JSON.stringify(
+      database,
+      null,
+      2
+    )
   );
-  console.log("database saved");
 }
-
 // =====================
 // COMMANDS
 // =====================
@@ -1619,6 +1631,7 @@ ${renderMine(game)}`
 
 
     // work
+// work
 if (
   interaction.commandName ===
   'work'
@@ -1628,9 +1641,11 @@ if (
     interaction.user.id;
 
   // create user if missing
-  if (!database[userId]) {
+  if (
+    !database.users[userId]
+  ) {
 
-    database[userId] = {
+    database.users[userId] = {
       coins: 0
     };
   }
@@ -1638,21 +1653,23 @@ if (
   // random coins
   const earned =
     Math.floor(
-      Math.random() * 51
+      Math.random() * 50
     ) + 10;
 
-  database[userId].coins += earned;
+  // add coins
+  database.users[userId].coins += earned;
 
+  // SAVE DATABASE
   saveDatabase();
 
+  // reply
   return interaction.reply({
     content:
 `💰 You worked and earned ${earned} coins!
 
-You now have ${database[userId].coins} coins.`
+You now have ${database.users[userId].coins} coins.`
   });
 }
-
     // leaderboard
 if (
   interaction.commandName ===
