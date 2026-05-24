@@ -90,20 +90,32 @@ const simpleCommands = {
 Suggest a QOTD
 
 /qotdqueue
-View your queued QOTDs + statuses(currently down)
+View your queued QOTDs + statuses (Currently down)
 
 /sendqotd
-Force send oldest QOTD(owner only)
+Force send oldest QOTD (Owner only)
 
 /forceqotd
-Force send a specific queued QOTD(owner only)
+Force send a specific queued QOTD (Owner only)
 
 **-----Games/Fun-----**
 /snake
 Play snake
 
 /askai
-ask ChatGPT 3.5 Turbo anything(has proper chat memory, resets after 20 messages)
+Ask ChatGPT 3.5 Turbo anything(has proper chat memory, resets after 20 messages)
+
+**-----Economy/Coins-----**
+
+/work
+Get a random about of coins
+
+/daily
+Claim daily coins(24H after last claimed, not actually daily)
+
+/leaderboard
+View balance leaderboard
+
 
 **-----Other-----**
 /help
@@ -113,7 +125,7 @@ Shows this command list
 Check if the bot is alive
 `,
 
-    description: "list all commands"
+    description: "List all commands"
   }
 };
 
