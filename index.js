@@ -2020,6 +2020,7 @@ if (
   }
 );
 // ) <- the evil bracket, has caused 1 crime
+// test comment
 // =====================
 // LOGIN
 // =====================
