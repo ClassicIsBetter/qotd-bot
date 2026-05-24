@@ -1683,7 +1683,6 @@ if (
 You now have ${coins} coins.`
   });
 }
-    // leaderboard
 // leaderboard
 if (
   interaction.commandName ===
@@ -1728,18 +1727,28 @@ if (
       );
 
     text +=
-`${i + 1}. <@${userId}> — ${data.value} coins\n`;
+`**${i + 1}.** <@${userId}> — 💰 ${data.value} coins\n`;
   }
 
-  return interaction.reply({
-    content:
-`# Coin Leaderboard
+  const embed =
+    new EmbedBuilder()
+      .setTitle(
+        "💰 Coin Leaderboard"
+      )
+      .setDescription(text)
+      .setColor(0xffd700)
+      .setFooter({
+        text:
+          `Top ${coinUsers.length} richest users`
+      });
 
-${text}`
+  return interaction.reply({
+    embeds: [embed]
   });
 }
 
     // setcoins
+// setcoins
 if (
   interaction.commandName ===
   'setcoins'
@@ -1758,7 +1767,7 @@ if (
     });
   }
 
-  const target =
+  const user =
     interaction.options.getUser(
       'user'
     );
@@ -1768,26 +1777,15 @@ if (
       'amount'
     );
 
-  // create user if missing
-  if (
-    !database.users[target.id]
-  ) {
-
-    database.users[target.id] = {
-      coins: 0
-    };
-  }
-
-  // set coins
-  database.users[target.id].coins =
-    amount;
-
-  // save
-  saveDatabase();
+  // save coins
+  await db.set(
+    `coins_${user.id}`,
+    amount
+  );
 
   return interaction.reply({
     content:
-`💰 Set ${target.username}'s coins to ${amount}.`
+`💰 Set ${user.username}'s coins to ${amount}.`
   });
 }
         // 8ball
