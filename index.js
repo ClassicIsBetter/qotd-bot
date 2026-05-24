@@ -122,6 +122,7 @@ Check if the bot is alive
 // =====================
 let qotdNumber = 29;
 const axios = require("axios");
+const fs = require("fs");
 
 // =====================
 // SNAKE GAMES
@@ -349,6 +350,27 @@ function rgbToEmoji(r, g, b) {
 
   return "🟦";
 }
+
+
+// =====================
+// DATABASE
+// =====================
+
+let database = {};
+
+if (fs.existsSync("./database.json")) {
+  database = JSON.parse(
+    fs.readFileSync("./database.json", "utf8")
+  );
+}
+
+function saveDatabase() {
+  fs.writeFileSync(
+    "./database.json",
+    JSON.stringify(database, null, 2)
+  );
+}
+
 // =====================
 // COMMANDS
 // =====================
@@ -393,6 +415,11 @@ const commands = [
     .setName('snake')
     .setDescription('Play snake')
     .toJSON(),
+
+  new SlashCommandBuilder()
+  .setName('work')
+  .setDescription('Work for coins')
+  .toJSON(),
 
   new SlashCommandBuilder()
   .setName('serverinfo')
@@ -1581,6 +1608,42 @@ if (
 `# Minecraft
 
 ${renderMine(game)}`
+  });
+}
+
+
+    // work
+if (
+  interaction.commandName ===
+  'work'
+) {
+
+  const userId =
+    interaction.user.id;
+
+  // create user if missing
+  if (!database[userId]) {
+
+    database[userId] = {
+      coins: 0
+    };
+  }
+
+  // random coins
+  const earned =
+    Math.floor(
+      Math.random() * 51
+    ) + 10;
+
+  database[userId].coins += earned;
+
+  saveDatabase();
+
+  return interaction.reply({
+    content:
+`💰 You worked and earned ${earned} coins!
+
+You now have ${database[userId].coins} coins.`
   });
 }
         // 8ball
