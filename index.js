@@ -1504,7 +1504,7 @@ if (
 
   const game = {
 
-    x: 5,
+    x: 2,
     y: 2,
 
     world:
