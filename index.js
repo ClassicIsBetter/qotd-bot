@@ -132,7 +132,7 @@ Check if the bot is alive
 // =====================
 // STATE
 // =====================
-let qotdNumber = 29;
+//let qotdNumber = 29;
 const axios = require("axios");
 const { QuickDB } = require("quick.db");
 const db = new QuickDB();
@@ -374,6 +374,8 @@ function rgbToEmoji(r, g, b) {
 }
 
 
+
+
 // =====================
 // DATABASE
 // =====================
@@ -406,6 +408,45 @@ function saveDatabase() {
       2
     )
   );
+}
+
+// get qotd number
+async function getQotdNumber(serverId) {
+
+  const { data } = await supabase
+    .from("qotd_data")
+    .select("*")
+    .eq("server_id", serverId)
+    .maybeSingle();
+
+  // default if server not setup yet
+  if (!data) {
+
+    await supabase
+      .from("qotd_data")
+      .upsert({
+        server_id: serverId,
+        qotd_number: 1
+      });
+
+    return 1;
+  }
+
+  return data.qotd_number || 1;
+}
+
+// save qotd number
+async function setQotdNumber(
+  serverId,
+  number
+) {
+
+  await supabase
+    .from("qotd_data")
+    .upsert({
+      server_id: serverId,
+      qotd_number: number
+    });
 }
 // =====================
 // COMMANDS
@@ -839,6 +880,12 @@ async function postQOTD(content) {
       OUTPUT_CHANNEL_ID
     );
 
+  // get current qotd number
+  const qotdNumber =
+    await getQotdNumber(
+      outputChannel.guild.id
+    );
+
   const lines = content
     .split("\n")
     .map(l => l.trim())
@@ -866,13 +913,17 @@ async function postQOTD(content) {
 
   // thread
   await sent.startThread({
-    name: `QOTD #${qotdNumber} discussion`,
+    name:
+      `QOTD #${qotdNumber} discussion`,
     autoArchiveDuration: 1440
   }).catch(() => {});
 
-  qotdNumber++;
+  // increase qotd number
+  await setQotdNumber(
+    outputChannel.guild.id,
+    qotdNumber + 1
+  );
 }
-
 
 
 // =====================
