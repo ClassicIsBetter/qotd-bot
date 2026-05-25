@@ -633,6 +633,16 @@ const commands = [
   .toJSON(),
 
   new SlashCommandBuilder()
+  .setName('balance')
+  .setDescription('Check your coin balance')
+  .toJSON(),
+
+new SlashCommandBuilder()
+  .setName('inventory')
+  .setDescription('View your inventory')
+  .toJSON(),
+
+  new SlashCommandBuilder()
   .setName('setcoins')
   .setDescription('Set a users coins')
   .addUserOption(option =>
@@ -1330,6 +1340,9 @@ ${renderSnake(game)}`,
   // =====================
 // SHOP BUTTONS
 // =====================
+// =====================
+// SHOP BUTTONS
+// =====================
 if (
   interaction.customId.startsWith(
     "buy_"
@@ -1372,6 +1385,9 @@ if (
   let coins =
     data?.coins || 0;
 
+  let inventory =
+    data?.inventory || [];
+
   // not enough money
   if (
     coins < item.price
@@ -1386,11 +1402,15 @@ if (
 
   coins -= item.price;
 
+  // add item
+  inventory.push(item.name);
+
   await supabase
     .from("coins")
     .upsert({
       user_id: userId,
-      coins: coins
+      coins: coins,
+      inventory: inventory
     });
 
   return interaction.reply({
@@ -1401,7 +1421,6 @@ if (
     ephemeral: true
   });
 }
-  
   // =====================
   // QOTD BUTTONS
   // =====================
@@ -2132,6 +2151,103 @@ if (
   });
 }
 
+
+
+    // balance
+if (
+  interaction.commandName ===
+  'balance'
+) {
+
+  const userId =
+    interaction.user.id;
+
+  const { data } =
+    await supabase
+      .from("coins")
+      .select("*")
+      .eq(
+        "user_id",
+        userId
+      )
+      .maybeSingle();
+
+  const coins =
+    data?.coins || 0;
+
+  const embed =
+    new EmbedBuilder()
+      .setTitle(
+        "Your Balance"
+      )
+      .setDescription(
+        `You currently have **${coins}** coins.`
+      )
+      .setColor(0xffd700);
+
+  return interaction.reply({
+    embeds: [embed]
+  });
+}
+
+// inventory
+if (
+  interaction.commandName ===
+  'inventory'
+) {
+
+  const userId =
+    interaction.user.id;
+
+  const { data } =
+    await supabase
+      .from("coins")
+      .select("*")
+      .eq(
+        "user_id",
+        userId
+      )
+      .maybeSingle();
+
+  const inventory =
+    data?.inventory || [];
+
+  let text = "";
+
+  if (
+    inventory.length <= 0
+  ) {
+
+    text =
+      "Your inventory is empty.";
+  }
+
+  else {
+
+    for (
+      let i = 0;
+      i < inventory.length;
+      i++
+    ) {
+
+      text +=
+`• ${inventory[i]}\n`;
+    }
+  }
+
+  const embed =
+    new EmbedBuilder()
+      .setTitle(
+        "Your Inventory"
+      )
+      .setDescription(text)
+      .setColor(0x00b0f4);
+
+  return interaction.reply({
+    embeds: [embed],
+    ephemeral: true
+  });
+}
 
 // shop
 if (
