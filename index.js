@@ -466,6 +466,16 @@ function rgbToEmoji(r, g, b) {
 
 
 
+const shopItems = [
+
+  {
+    name: "test item",
+    price: 150,
+    emoji: "🐈"
+  }
+
+];
+
 
 // =====================
 // DATABASE
@@ -615,6 +625,11 @@ const commands = [
   new SlashCommandBuilder()
   .setName('daily')
   .setDescription('Claim daily coins')
+  .toJSON(),
+
+  new SlashCommandBuilder()
+  .setName('shop')
+  .setDescription('View the coin shop')
   .toJSON(),
 
   new SlashCommandBuilder()
@@ -2041,6 +2056,34 @@ if (
 💰 Total: ${coins} coins`
   });
 }
+
+
+    // shop
+if (
+  interaction.commandName ===
+  'shop'
+) {
+
+  let text = "";
+
+  for (const item of shopItems) {
+
+    text +=
+`${item.emoji} **${item.name}**
+💰 ${item.price} coins\n\n`;
+  }
+
+  const embed =
+    new EmbedBuilder()
+      .setTitle("Coin Shop")
+      .setDescription(text)
+      .setColor(0x00b0f4);
+
+  return interaction.reply({
+    embeds: [embed]
+  });
+}
+    
         // 8ball
 if (
   interaction.commandName ===
