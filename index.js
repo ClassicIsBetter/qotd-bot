@@ -1328,6 +1328,81 @@ ${renderSnake(game)}`,
   }
 
   // =====================
+// SHOP BUTTONS
+// =====================
+if (
+  interaction.customId.startsWith(
+    "buy_"
+  )
+) {
+
+  const itemIndex =
+    parseInt(
+      interaction.customId.replace(
+        "buy_",
+        ""
+      )
+    );
+
+  const item =
+    shopItems[itemIndex];
+
+  if (!item) {
+
+    return interaction.reply({
+      content:
+        "Item not found.",
+      ephemeral: true
+    });
+  }
+
+  const userId =
+    interaction.user.id;
+
+  const { data } =
+    await supabase
+      .from("coins")
+      .select("*")
+      .eq(
+        "user_id",
+        userId
+      )
+      .maybeSingle();
+
+  let coins =
+    data?.coins || 0;
+
+  // not enough money
+  if (
+    coins < item.price
+  ) {
+
+    return interaction.reply({
+      content:
+`❌ You need ${item.price} coins to buy ${item.name}.`,
+      ephemeral: true
+    });
+  }
+
+  coins -= item.price;
+
+  await supabase
+    .from("coins")
+    .upsert({
+      user_id: userId,
+      coins: coins
+    });
+
+  return interaction.reply({
+    content:
+`✅ You bought ${item.emoji} ${item.name} for ${item.price} coins!
+
+💰 Remaining coins: ${coins}`,
+    ephemeral: true
+  });
+}
+  
+  // =====================
   // QOTD BUTTONS
   // =====================
   if (
@@ -2058,7 +2133,7 @@ if (
 }
 
 
-    // shop
+// shop
 if (
   interaction.commandName ===
   'shop'
@@ -2066,21 +2141,49 @@ if (
 
   let text = "";
 
-  for (const item of shopItems) {
+  const buttons =
+    new ActionRowBuilder();
+
+  for (
+    let i = 0;
+    i < shopItems.length;
+    i++
+  ) {
+
+    const item =
+      shopItems[i];
 
     text +=
 `${item.emoji} **${item.name}**
 💰 ${item.price} coins\n\n`;
+
+    buttons.addComponents(
+
+      new ButtonBuilder()
+        .setCustomId(
+          `buy_${i}`
+        )
+        .setLabel(
+          item.name
+        )
+        .setStyle(
+          ButtonStyle.Primary
+        )
+    );
   }
 
   const embed =
     new EmbedBuilder()
-      .setTitle("Coin Shop")
+      .setTitle(
+        "🛒 Coin Shop"
+      )
       .setDescription(text)
       .setColor(0x00b0f4);
 
   return interaction.reply({
-    embeds: [embed]
+    embeds: [embed],
+    components: [buttons],
+    ephemeral: true
   });
 }
     
