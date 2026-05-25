@@ -39,17 +39,108 @@ const QOTD_ROLE_ID = "1479019281126785096";
 // =====================
 const presetQOTDs = [
 
-`"pizza or burger"
-🍕 | Pizza
-🍔 | Burger`,
+`"what was the last thing you ate"`,
 
-`"what is the best minecraft block?"
-🟩 | Grass Block
-💎 | Diamond Block`,
+`"what's your favourite season?"
+​
+🌺 | spring
+☀️ | summer
+🍂 | autumn
+❄️ | winter`,
+
+`"whats your favorite Minecraft block/item"`,
+
+`"what is your favourite meme?"`,
+
+`"whats your most used emoji & sticker in discord (first in frequently used)"`,
+
+`"Make a story in the thread"`,
 
 `"cats or dogs?"
 🐈 | Cats
-🐕 | Dogs`
+🐕 | Dogs`,
+
+`"what game have you been playing the most lately?"`,
+
+`"what's your dream job?"`,
+
+`"what's the weirdest food combo you've tried?"`,
+
+`"what's your favourite roblox game?"`,
+
+`"what was your first ever video game?"`,
+
+`"what's your favourite snack?"`,
+
+`"what's your most listened to song right now?"`,
+
+`"what's the funniest thing that's happened to you recently?"`,
+
+`"show your desktop/home screen"`,
+
+`"what's your favourite movie or tv show?"`,
+
+`"if you could instantly learn one skill what would it be?"`,
+
+`"what's your favourite app on your phone?"`,
+
+`"night owl or early bird?"
+🌙 | Night owl
+🌅 | Early bird`,
+
+`"what's your favourite fast food place?"`,
+
+`"what's one game you always come back to?"`,
+
+`"what's your favourite animal?"`,
+
+`"pineapple on pizza?"
+🍍 | yes
+🚫 | no`,
+
+`"what was the last thing you searched on google?"`,
+
+`"what superpower would you want?"`,
+
+`"post a random image from your gallery"`,
+
+`"what's your favourite holiday?"
+🎃 | Halloween
+🎄 | Christmas
+🐣 | Easter
+🎆 | New Years`,
+
+`"what's your favourite drink?"`,
+
+`"console, pc, or mobile?"
+🖥️ | PC
+🎮 | Console
+📱 | Mobile`,
+
+`"what's your favourite discord server emoji?(send an image if you dont have nitro)"`,
+
+`"if animals could talk, which would be the rudest?"`,
+
+`"what colour do you use the most in your builds/art?"`,
+
+`"what's your comfort game?"`,
+
+`"what's your favourite youtuber?"`,
+
+`"what's the best smell ever?"`,
+
+`"what's your least favourite chore?"`,
+
+`"what was your favourite show as a kid?"`,
+
+`"what's your favourite thing to do when bored?"`,
+
+`"what's the oldest device you still use?"`,
+
+`"what's a game everyone likes but you dont?"`,
+
+`"what's your favourite thing about discord?"`,
+
 ];
 
 const eightBallResponses = [
