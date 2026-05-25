@@ -472,7 +472,13 @@ const shopItems = [
     name: "test item",
     price: 150,
     emoji: "🐈"
-  }
+  },
+
+  {
+    name: "very expensive item",
+    price: 100000,
+    emoji: "💸"
+  },
 
 ];
 
@@ -1337,9 +1343,6 @@ ${renderSnake(game)}`,
     });
   }
 
-  // =====================
-// SHOP BUTTONS
-// =====================
 // =====================
 // SHOP BUTTONS
 // =====================
@@ -1385,9 +1388,6 @@ if (
   let coins =
     data?.coins || 0;
 
-  let inventory =
-    data?.inventory || [];
-
   // not enough money
   if (
     coins < item.price
@@ -1400,17 +1400,23 @@ if (
     });
   }
 
+  // remove coins
   coins -= item.price;
 
-  // add item
-  inventory.push(item.name);
-
+  // save coins
   await supabase
     .from("coins")
     .upsert({
       user_id: userId,
-      coins: coins,
-      inventory: inventory
+      coins: coins
+    });
+
+  // save inventory item
+  await supabase
+    .from("inventory")
+    .insert({
+      user_id: userId,
+      item_name: item.name
     });
 
   return interaction.reply({
@@ -2199,23 +2205,32 @@ if (
   const userId =
     interaction.user.id;
 
-  const { data } =
+  const { data, error } =
     await supabase
-      .from("coins")
+      .from("inventory")
       .select("*")
       .eq(
         "user_id",
         userId
-      )
-      .maybeSingle();
+      );
 
-  const inventory =
-    data?.inventory || [];
+  if (error) {
+
+    console.log(error);
+
+    return interaction.reply({
+      content:
+        "Inventory database error.",
+      ephemeral: true
+    });
+  }
 
   let text = "";
 
+  // empty inventory
   if (
-    inventory.length <= 0
+    !data ||
+    data.length <= 0
   ) {
 
     text =
@@ -2224,14 +2239,26 @@ if (
 
   else {
 
-    for (
-      let i = 0;
-      i < inventory.length;
-      i++
-    ) {
+    // count duplicates
+    const itemCounts = {};
+
+    for (const item of data) {
+
+      if (
+        !itemCounts[item.item_name]
+      ) {
+
+        itemCounts[item.item_name] = 0;
+      }
+
+      itemCounts[item.item_name]++;
+    }
+
+    // make text
+    for (const itemName in itemCounts) {
 
       text +=
-`• ${inventory[i]}\n`;
+`• ${itemName} x${itemCounts[itemName]}\n`;
     }
   }
 
@@ -2248,7 +2275,6 @@ if (
     ephemeral: true
   });
 }
-
 // shop
 if (
   interaction.commandName ===
