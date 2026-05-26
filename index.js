@@ -10,8 +10,7 @@ const {
   TextInputStyle,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle,
-  StringSelectMenuBuilder
+  ButtonStyle
 } = require('discord.js');
 
 // =====================
@@ -19,19 +18,11 @@ const {
 // =====================
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
-//const GUILD_ID = process.env.GUILD_ID;
+const GUILD_ID = process.env.GUILD_ID;
 
-//const INPUT_CHANNEL_ID = process.env.INPUT_CHANNEL_ID;
-//const OUTPUT_CHANNEL_ID = process.env.OUTPUT_CHANNEL_ID;
-//const REVIEW_CHANNEL_ID = process.env.REVIEW_CHANNEL_ID;
-
-
-//const settings = await getGuildSettings(outputChannel.guild.id);
-
-//const inputChannel = await client.channels.fetch(settings.input_channel_id);
-//const outputChannel = await client.channels.fetch(settings.output_channel_id);
-//const reviewChannel = await client.channels.fetch(settings.review_channel_id);
-//const roleId = settings.qotd_role_id;
+const INPUT_CHANNEL_ID = process.env.INPUT_CHANNEL_ID;
+const OUTPUT_CHANNEL_ID = process.env.OUTPUT_CHANNEL_ID;
+const REVIEW_CHANNEL_ID = process.env.REVIEW_CHANNEL_ID;
 
 // =====================
 // OWNER
@@ -41,7 +32,7 @@ const OWNER_ID = "1285513478315966506";
 // =====================
 // ROLE PING
 // =====================
-//const QOTD_ROLE_ID = "1479019281126785096";
+const QOTD_ROLE_ID = "1479019281126785096";
 
 // =====================
 // PRESET QOTDS
@@ -564,25 +555,6 @@ async function setQotdNumber(
       qotd_number: number
     });
 }
-
-async function isGuildOwner(interaction) {
-  return interaction.user.id === interaction.guild.ownerId;
-}
-
-async function isBotOwner(interaction) {
-  return interaction.user.id === OWNER_ID;
-}
-
-
-async function getGuildSettings(guildId) {
-  const { data } = await supabase
-    .from("guild_settings")
-    .select("*")
-    .eq("guild_id", guildId)
-    .maybeSingle();
-
-  return data;
-}
 // =====================
 // COMMANDS
 // =====================
@@ -674,12 +646,6 @@ const commands = [
 new SlashCommandBuilder()
   .setName('inventory')
   .setDescription('View your inventory')
-  .toJSON(),
-
-
-  new SlashCommandBuilder()
-  .setName('setup')
-  .setDescription('Setup QOTD system for this server')
   .toJSON(),
 
   new SlashCommandBuilder()
@@ -791,11 +757,12 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
     console.log("Registering commands...");
 
     await rest.put(
-  Routes.applicationCommands(
-    CLIENT_ID
-  ),
-  { body: commands }
-);
+      Routes.applicationGuildCommands(
+        CLIENT_ID,
+        GUILD_ID
+      ),
+      { body: commands }
+    );
 
     console.log("Commands ready.");
 
@@ -1028,36 +995,17 @@ function snakeButtons() {
 // =====================
 // POST QOTD
 // =====================
-async function postQOTD(content, guildId) {
-
-  // get server settings
-  const settings =
-    await getGuildSettings(
-      guildId
-    );
-
-  // no setup yet
-  if (!settings) {
-
-    console.log(
-      `No settings for guild ${guildId}`
-    );
-
-    return;
-  }
+async function postQOTD(content) {
 
   const outputChannel =
     await client.channels.fetch(
-      settings.output_channel_id
+      OUTPUT_CHANNEL_ID
     );
-
-  const roleId =
-    settings.qotd_role_id;
 
   // get current qotd number
   const qotdNumber =
     await getQotdNumber(
-      guildId
+      outputChannel.guild.id
     );
 
   const lines = content
@@ -1068,24 +1016,15 @@ async function postQOTD(content, guildId) {
   const reactions =
     extractEmojis(lines);
 
-  const embed =
-    new EmbedBuilder()
-      .setTitle(
-        `QOTD #${qotdNumber}`
-      )
-      .setDescription(content)
-      .setColor(0xffcc00);
+  const embed = new EmbedBuilder()
+    .setTitle(`QOTD #${qotdNumber}`)
+    .setDescription(content)
+    .setColor(0xffcc00);
 
-  const sent =
-    await outputChannel.send({
-
-      content:
-        roleId
-          ? `<@&${roleId}>`
-          : null,
-
-      embeds: [embed]
-    });
+  const sent = await outputChannel.send({
+    content: `<@&${QOTD_ROLE_ID}>`,
+    embeds: [embed]
+  });
 
   // reactions
   for (const reaction of reactions) {
@@ -1103,37 +1042,22 @@ async function postQOTD(content, guildId) {
 
   // increase qotd number
   await setQotdNumber(
-    guildId,
+    outputChannel.guild.id,
     qotdNumber + 1
   );
 }
 
+
 // =====================
 // SEND QOTD
 // =====================
-async function sendQOTD(guildId) {
+async function sendQOTD() {
 
   try {
 
-    // get server settings
-    const settings =
-      await getGuildSettings(
-        guildId
-      );
-
-    // no setup yet
-    if (!settings) {
-
-      console.log(
-        `No settings for guild ${guildId}`
-      );
-
-      return;
-    }
-
     const inputChannel =
       await client.channels.fetch(
-        settings.input_channel_id
+        INPUT_CHANNEL_ID
       );
 
     const messages =
@@ -1154,8 +1078,7 @@ async function sendQOTD(guildId) {
         sorted[0];
 
       await postQOTD(
-        oldest.content,
-        guildId
+        oldest.content
       );
 
       await oldest.delete()
@@ -1172,15 +1095,14 @@ async function sendQOTD(guildId) {
         ];
 
       await postQOTD(
-        randomPreset,
-        guildId
+        randomPreset
       );
     }
 
   } catch (err) {
 
     console.error(
-      `QOTD error in guild ${guildId}:`,
+      "QOTD error:",
       err
     );
   }
@@ -1191,7 +1113,7 @@ async function sendQOTD(guildId) {
 // =====================
 function scheduleQOTD(hour, minute) {
 
-  setInterval(async () => {
+  setInterval(() => {
 
     const now = new Date();
 
@@ -1210,21 +1132,7 @@ function scheduleQOTD(hour, minute) {
       adelaide.getMinutes() === minute
     ) {
 
-      // get all configured servers
-      const { data: guilds } =
-        await supabase
-          .from("guild_settings")
-          .select("guild_id");
-
-      if (!guilds) return;
-
-      // send qotd to every server
-      for (const guild of guilds) {
-
-        sendQOTD(
-          guild.guild_id
-        );
-      }
+      sendQOTD();
     }
 
   }, 60000);
@@ -1263,22 +1171,6 @@ client.on(
         'qotdModal'
       ) {
 
-        // get server settings
-        const settings =
-          await getGuildSettings(
-            interaction.guild.id
-          );
-
-        // no setup yet
-        if (!settings) {
-
-          return interaction.reply({
-            content:
-              "This server has not been setup yet.",
-            ephemeral: true
-          });
-        }
-
         const question =
           interaction.fields.getTextInputValue(
             'question'
@@ -1291,7 +1183,7 @@ client.on(
 
         const reviewChannel =
           await client.channels.fetch(
-            settings.review_channel_id
+            REVIEW_CHANNEL_ID
           );
 
         const qotdContent =
@@ -1360,6 +1252,7 @@ ${answers}`;
 
       return;
     }
+
     // =====================
 // BUTTONS
 // =====================
@@ -1449,75 +1342,6 @@ ${renderSnake(game)}`,
         snakeButtons()
     });
   }
-
-// =====================
-// SETUP BUTTONS
-// =====================
-if (interaction.customId.startsWith("setup_")) {
-
-  if (
-    interaction.user.id !== interaction.guild.ownerId &&
-    interaction.user.id !== OWNER_ID
-  ) {
-    return interaction.reply({
-      content: "No permission.",
-      ephemeral: true
-    });
-  }
-
-  const action = interaction.customId.replace("setup_", "");
-
-  // fetch channels
-  const channels = interaction.guild.channels.cache
-    .filter(c => c.isTextBased());
-
-  const options = channels.map(c => ({
-    label: c.name.slice(0, 100),
-    value: c.id
-  })).slice(0, 25);
-
-  const select = new ActionRowBuilder().addComponents(
-    new StringSelectMenuBuilder()
-      .setCustomId(`setup_select_${action}`)
-      .setPlaceholder("Pick a channel")
-      .addOptions(options)
-  );
-
-  return interaction.reply({
-    content: `Select channel for: ${action}`,
-    components: [select],
-    ephemeral: true
-  });
-}
-
-if (interaction.isStringSelectMenu()) {
-
-  if (!interaction.customId.startsWith("setup_select_")) return;
-
-  const action = interaction.customId.replace("setup_select_", "");
-  const channelId = interaction.values[0];
-
-  const guildId = interaction.guild.id;
-
-  let update = {
-    guild_id: guildId,
-    updated_at: new Date().toISOString()
-  };
-
-  if (action === "input") update.input_channel_id = channelId;
-  if (action === "output") update.output_channel_id = channelId;
-  if (action === "review") update.review_channel_id = channelId;
-  if (action === "role") update.qotd_role_id = channelId;
-
-  await supabase
-    .from("guild_settings")
-    .upsert(update);
-
-  return interaction.reply({
-    content: `✅ Saved ${action}!`,
-    ephemeral: true
-  });
-}
 
 // =====================
 // SHOP BUTTONS
@@ -1632,33 +1456,14 @@ if (
   // =====================
   // ACCEPT
   // =====================
-  // =====================
-  // ACCEPT
-  // =====================
   if (
     interaction.customId ===
     "accept_qotd"
   ) {
 
-    // get server settings
-    const settings =
-      await getGuildSettings(
-        interaction.guild.id
-      );
-
-    // no setup yet
-    if (!settings) {
-
-      return interaction.reply({
-        content:
-          "This server has not been setup yet.",
-        ephemeral: true
-      });
-    }
-
     const inputChannel =
       await client.channels.fetch(
-        settings.input_channel_id
+        INPUT_CHANNEL_ID
       );
 
     await inputChannel.send(
@@ -1869,91 +1674,74 @@ ${renderSnake(game)}`,
     }
 
     // forceqotd
-  if (
-  interaction.commandName ===
-  'forceqotd'
-) {
+    if (
+      interaction.commandName ===
+      'forceqotd'
+    ) {
 
-  // server owner OR bot owner
-  if (
-    interaction.user.id !== OWNER_ID &&
-    interaction.user.id !== interaction.guild.ownerId
-  ) {
+      if (
+        interaction.user.id !==
+        OWNER_ID
+      ) {
 
-    return interaction.reply({
-      content:
-        "No permission.",
-      ephemeral: true
-    });
-  }
+        return interaction.reply({
+          content:
+            "No permission.",
+          ephemeral: true
+        });
+      }
 
-  // get server settings
-  const settings =
-    await getGuildSettings(
-      interaction.guild.id
-    );
+      const number =
+        interaction.options.getInteger(
+          'number'
+        );
 
-  // no setup yet
-  if (!settings) {
+      const inputChannel =
+        await client.channels.fetch(
+          INPUT_CHANNEL_ID
+        );
 
-    return interaction.reply({
-      content:
-        "This server has not been setup yet.",
-      ephemeral: true
-    });
-  }
+      const messages =
+        await inputChannel.messages.fetch({
+          limit: 100
+        });
 
-  const number =
-    interaction.options.getInteger(
-      'number'
-    );
+      const sorted =
+        [...messages.values()]
+          .sort((a, b) =>
+            a.createdTimestamp -
+            b.createdTimestamp
+          );
 
-  const inputChannel =
-    await client.channels.fetch(
-      settings.input_channel_id
-    );
+      if (
+        number < 1 ||
+        number > sorted.length
+      ) {
 
-  const messages =
-    await inputChannel.messages.fetch({
-      limit: 100
-    });
+        return interaction.reply({
+          content:
+            `Invalid queue number. There are ${sorted.length} QOTDs queued.`,
+          ephemeral: true
+        });
+      }
 
-  const sorted =
-    [...messages.values()]
-      .sort((a, b) =>
-        a.createdTimestamp -
-        b.createdTimestamp
+      const targetMessage =
+        sorted[number - 1];
+
+      await postQOTD(
+        targetMessage.content
       );
 
-  if (
-    number < 1 ||
-    number > sorted.length
-  ) {
+      await targetMessage.delete()
+        .catch(() => {});
 
-    return interaction.reply({
-      content:
-        `Invalid queue number. There are ${sorted.length} QOTDs queued.`,
-      ephemeral: true
-    });
-  }
+      return interaction.reply({
+        content:
+          `Forced QOTD #${number} to send.`,
+        ephemeral: true
+      });
+    }
 
-  const targetMessage =
-    sorted[number - 1];
-
-  await postQOTD(
-    targetMessage.content,
-    interaction.guild.id
-  );
-
-  await targetMessage.delete()
-    .catch(() => {});
-
-  return interaction.reply({
-    content:
-      `Forced QOTD #${number} to send.`,
-    ephemeral: true
-  });
-}
         // dice
 if (
   interaction.commandName ===
@@ -2540,70 +2328,6 @@ if (
     ephemeral: true
   });
 }
-
-if (interaction.commandName === "setup") {
-
- const guild = interaction.guild;
-
-if (!guild) {
-  return interaction.reply({
-    content: "This command only works in servers.",
-    ephemeral: true
-  });
-}
-
-if (
-  interaction.user.id !== guild.ownerId &&
-  interaction.user.id !== OWNER_ID
-) {
-  return interaction.reply({
-    content: "No permission.",
-    ephemeral: true
-  });
-}
-    return interaction.reply({
-      content: "Only server owner can use setup.",
-      ephemeral: true
-    });
-  }
-
-  const channels = interaction.guild.channels.cache
-    .filter(c => c.isTextBased && c.isTextBased())
-    .map(c => ({
-      label: c.name.slice(0, 100),
-      value: c.id
-    }))
-    .slice(0, 25);
-
-  const channelSelect = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId("setup_input")
-      .setLabel("Set Input Channel")
-      .setStyle(ButtonStyle.Primary),
-
-    new ButtonBuilder()
-      .setCustomId("setup_output")
-      .setLabel("Set Output Channel")
-      .setStyle(ButtonStyle.Primary),
-
-    new ButtonBuilder()
-      .setCustomId("setup_review")
-      .setLabel("Set Review Channel")
-      .setStyle(ButtonStyle.Primary),
-
-    new ButtonBuilder()
-      .setCustomId("setup_role")
-      .setLabel("Set QOTD Role")
-      .setStyle(ButtonStyle.Primary)
-  );
-
-  return interaction.reply({
-    content:
-      "Click buttons then pick a channel/role in next step.",
-    components: [channelSelect],
-    ephemeral: true
-  });
-}
     
         // 8ball
 if (
@@ -2976,8 +2700,8 @@ if (
 
       await sendQOTD();
     }
-  //}//line 2965
-});
+  }
+);
 // ) <- the evil bracket, has caused 1 crime
 // test comment
 // =====================
