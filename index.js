@@ -1256,16 +1256,6 @@ client.on(
     // =====================
     // MODAL SUBMIT
     // =====================
-client.on(
-  'interactionCreate',
-  async (interaction) => {
-
-    const axios = require("axios");
-    const sharp = require("sharp");
-
-    // =====================
-    // MODAL SUBMIT
-    // =====================
     if (interaction.isModalSubmit()) {
 
       if (
