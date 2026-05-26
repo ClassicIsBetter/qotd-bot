@@ -1469,7 +1469,7 @@ if (interaction.customId.startsWith("setup_")) {
 
   // fetch channels
   const channels = interaction.guild.channels.cache
-    .filter(c => c.isTextBased && c.isTextBased());
+    .filter(c => c.isTextBased());
 
   const options = channels.map(c => ({
     label: c.name.slice(0, 100),
@@ -2962,7 +2962,7 @@ if (
 
       await sendQOTD();
     }
-  }
+  //}//line 2965
 });
 // ) <- the evil bracket, has caused 1 crime
 // test comment
