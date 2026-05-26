@@ -25,12 +25,12 @@ const CLIENT_ID = process.env.CLIENT_ID;
 //const REVIEW_CHANNEL_ID = process.env.REVIEW_CHANNEL_ID;
 
 
-const settings = await getGuildSettings(outputChannel.guild.id);
+//const settings = await getGuildSettings(outputChannel.guild.id);
 
-const inputChannel = await client.channels.fetch(settings.input_channel_id);
-const outputChannel = await client.channels.fetch(settings.output_channel_id);
-const reviewChannel = await client.channels.fetch(settings.review_channel_id);
-const roleId = settings.qotd_role_id;
+//const inputChannel = await client.channels.fetch(settings.input_channel_id);
+//const outputChannel = await client.channels.fetch(settings.output_channel_id);
+//const reviewChannel = await client.channels.fetch(settings.review_channel_id);
+//const roleId = settings.qotd_role_id;
 
 // =====================
 // OWNER
