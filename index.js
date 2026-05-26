@@ -2973,7 +2973,7 @@ if (
       await sendQOTD();
     }
   }
-);
+});
 // ) <- the evil bracket, has caused 1 crime
 // test comment
 // =====================
