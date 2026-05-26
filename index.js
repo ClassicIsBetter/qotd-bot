@@ -18,11 +18,19 @@ const {
 // =====================
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
-const GUILD_ID = process.env.GUILD_ID;
+//const GUILD_ID = process.env.GUILD_ID;
 
-const INPUT_CHANNEL_ID = process.env.INPUT_CHANNEL_ID;
-const OUTPUT_CHANNEL_ID = process.env.OUTPUT_CHANNEL_ID;
-const REVIEW_CHANNEL_ID = process.env.REVIEW_CHANNEL_ID;
+//const INPUT_CHANNEL_ID = process.env.INPUT_CHANNEL_ID;
+//const OUTPUT_CHANNEL_ID = process.env.OUTPUT_CHANNEL_ID;
+//const REVIEW_CHANNEL_ID = process.env.REVIEW_CHANNEL_ID;
+
+
+const settings = await getGuildSettings(outputChannel.guild.id);
+
+const inputChannel = await client.channels.fetch(settings.input_channel_id);
+const outputChannel = await client.channels.fetch(settings.output_channel_id);
+const reviewChannel = await client.channels.fetch(settings.review_channel_id);
+const roleId = settings.qotd_role_id;
 
 // =====================
 // OWNER
@@ -32,7 +40,7 @@ const OWNER_ID = "1285513478315966506";
 // =====================
 // ROLE PING
 // =====================
-const QOTD_ROLE_ID = "1479019281126785096";
+//const QOTD_ROLE_ID = "1479019281126785096";
 
 // =====================
 // PRESET QOTDS
@@ -555,6 +563,25 @@ async function setQotdNumber(
       qotd_number: number
     });
 }
+
+async function isGuildOwner(interaction) {
+  return interaction.user.id === interaction.guild.ownerId;
+}
+
+async function isBotOwner(interaction) {
+  return interaction.user.id === OWNER_ID;
+}
+
+
+async function getGuildSettings(guildId) {
+  const { data } = await supabase
+    .from("guild_settings")
+    .select("*")
+    .eq("guild_id", guildId)
+    .maybeSingle();
+
+  return data;
+}
 // =====================
 // COMMANDS
 // =====================
@@ -646,6 +673,12 @@ const commands = [
 new SlashCommandBuilder()
   .setName('inventory')
   .setDescription('View your inventory')
+  .toJSON(),
+
+
+  new SlashCommandBuilder()
+  .setName('setup')
+  .setDescription('Setup QOTD system for this server')
   .toJSON(),
 
   new SlashCommandBuilder()
@@ -995,17 +1028,36 @@ function snakeButtons() {
 // =====================
 // POST QOTD
 // =====================
-async function postQOTD(content) {
+async function postQOTD(content, guildId) {
+
+  // get server settings
+  const settings =
+    await getGuildSettings(
+      guildId
+    );
+
+  // no setup yet
+  if (!settings) {
+
+    console.log(
+      `No settings for guild ${guildId}`
+    );
+
+    return;
+  }
 
   const outputChannel =
     await client.channels.fetch(
-      OUTPUT_CHANNEL_ID
+      settings.output_channel_id
     );
+
+  const roleId =
+    settings.qotd_role_id;
 
   // get current qotd number
   const qotdNumber =
     await getQotdNumber(
-      outputChannel.guild.id
+      guildId
     );
 
   const lines = content
@@ -1016,15 +1068,24 @@ async function postQOTD(content) {
   const reactions =
     extractEmojis(lines);
 
-  const embed = new EmbedBuilder()
-    .setTitle(`QOTD #${qotdNumber}`)
-    .setDescription(content)
-    .setColor(0xffcc00);
+  const embed =
+    new EmbedBuilder()
+      .setTitle(
+        `QOTD #${qotdNumber}`
+      )
+      .setDescription(content)
+      .setColor(0xffcc00);
 
-  const sent = await outputChannel.send({
-    content: `<@&${QOTD_ROLE_ID}>`,
-    embeds: [embed]
-  });
+  const sent =
+    await outputChannel.send({
+
+      content:
+        roleId
+          ? `<@&${roleId}>`
+          : null,
+
+      embeds: [embed]
+    });
 
   // reactions
   for (const reaction of reactions) {
@@ -1042,22 +1103,37 @@ async function postQOTD(content) {
 
   // increase qotd number
   await setQotdNumber(
-    outputChannel.guild.id,
+    guildId,
     qotdNumber + 1
   );
 }
 
-
 // =====================
 // SEND QOTD
 // =====================
-async function sendQOTD() {
+async function sendQOTD(guildId) {
 
   try {
 
+    // get server settings
+    const settings =
+      await getGuildSettings(
+        guildId
+      );
+
+    // no setup yet
+    if (!settings) {
+
+      console.log(
+        `No settings for guild ${guildId}`
+      );
+
+      return;
+    }
+
     const inputChannel =
       await client.channels.fetch(
-        INPUT_CHANNEL_ID
+        settings.input_channel_id
       );
 
     const messages =
@@ -1078,7 +1154,8 @@ async function sendQOTD() {
         sorted[0];
 
       await postQOTD(
-        oldest.content
+        oldest.content,
+        guildId
       );
 
       await oldest.delete()
@@ -1095,14 +1172,15 @@ async function sendQOTD() {
         ];
 
       await postQOTD(
-        randomPreset
+        randomPreset,
+        guildId
       );
     }
 
   } catch (err) {
 
     console.error(
-      "QOTD error:",
+      `QOTD error in guild ${guildId}:`,
       err
     );
   }
@@ -1113,7 +1191,7 @@ async function sendQOTD() {
 // =====================
 function scheduleQOTD(hour, minute) {
 
-  setInterval(() => {
+  setInterval(async () => {
 
     const now = new Date();
 
@@ -1132,7 +1210,21 @@ function scheduleQOTD(hour, minute) {
       adelaide.getMinutes() === minute
     ) {
 
-      sendQOTD();
+      // get all configured servers
+      const { data: guilds } =
+        await supabase
+          .from("guild_settings")
+          .select("guild_id");
+
+      if (!guilds) return;
+
+      // send qotd to every server
+      for (const guild of guilds) {
+
+        sendQOTD(
+          guild.guild_id
+        );
+      }
     }
 
   }, 60000);
@@ -1164,12 +1256,38 @@ client.on(
     // =====================
     // MODAL SUBMIT
     // =====================
+client.on(
+  'interactionCreate',
+  async (interaction) => {
+
+    const axios = require("axios");
+    const sharp = require("sharp");
+
+    // =====================
+    // MODAL SUBMIT
+    // =====================
     if (interaction.isModalSubmit()) {
 
       if (
         interaction.customId ===
         'qotdModal'
       ) {
+
+        // get server settings
+        const settings =
+          await getGuildSettings(
+            interaction.guild.id
+          );
+
+        // no setup yet
+        if (!settings) {
+
+          return interaction.reply({
+            content:
+              "This server has not been setup yet.",
+            ephemeral: true
+          });
+        }
 
         const question =
           interaction.fields.getTextInputValue(
@@ -1183,7 +1301,7 @@ client.on(
 
         const reviewChannel =
           await client.channels.fetch(
-            REVIEW_CHANNEL_ID
+            settings.review_channel_id
           );
 
         const qotdContent =
@@ -1252,7 +1370,6 @@ ${answers}`;
 
       return;
     }
-
     // =====================
 // BUTTONS
 // =====================
@@ -1342,6 +1459,75 @@ ${renderSnake(game)}`,
         snakeButtons()
     });
   }
+
+// =====================
+// SETUP BUTTONS
+// =====================
+if (interaction.customId.startsWith("setup_")) {
+
+  if (
+    interaction.user.id !== interaction.guild.ownerId &&
+    interaction.user.id !== OWNER_ID
+  ) {
+    return interaction.reply({
+      content: "No permission.",
+      ephemeral: true
+    });
+  }
+
+  const action = interaction.customId.replace("setup_", "");
+
+  // fetch channels
+  const channels = interaction.guild.channels.cache
+    .filter(c => c.isTextBased && c.isTextBased());
+
+  const options = channels.map(c => ({
+    label: c.name.slice(0, 100),
+    value: c.id
+  })).slice(0, 25);
+
+  const select = new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId(`setup_select_${action}`)
+      .setPlaceholder("Pick a channel")
+      .addOptions(options)
+  );
+
+  return interaction.reply({
+    content: `Select channel for: ${action}`,
+    components: [select],
+    ephemeral: true
+  });
+}
+
+if (interaction.isStringSelectMenu()) {
+
+  if (!interaction.customId.startsWith("setup_select_")) return;
+
+  const action = interaction.customId.replace("setup_select_", "");
+  const channelId = interaction.values[0];
+
+  const guildId = interaction.guild.id;
+
+  let update = {
+    guild_id: guildId,
+    updated_at: new Date().toISOString()
+  };
+
+  if (action === "input") update.input_channel_id = channelId;
+  if (action === "output") update.output_channel_id = channelId;
+  if (action === "review") update.review_channel_id = channelId;
+  if (action === "role") update.qotd_role_id = channelId;
+
+  await supabase
+    .from("guild_settings")
+    .upsert(update);
+
+  return interaction.reply({
+    content: `✅ Saved ${action}!`,
+    ephemeral: true
+  });
+}
 
 // =====================
 // SHOP BUTTONS
@@ -1456,14 +1642,33 @@ if (
   // =====================
   // ACCEPT
   // =====================
+  // =====================
+  // ACCEPT
+  // =====================
   if (
     interaction.customId ===
     "accept_qotd"
   ) {
 
+    // get server settings
+    const settings =
+      await getGuildSettings(
+        interaction.guild.id
+      );
+
+    // no setup yet
+    if (!settings) {
+
+      return interaction.reply({
+        content:
+          "This server has not been setup yet.",
+        ephemeral: true
+      });
+    }
+
     const inputChannel =
       await client.channels.fetch(
-        INPUT_CHANNEL_ID
+        settings.input_channel_id
       );
 
     await inputChannel.send(
@@ -1674,74 +1879,91 @@ ${renderSnake(game)}`,
     }
 
     // forceqotd
-    if (
-      interaction.commandName ===
-      'forceqotd'
-    ) {
+  if (
+  interaction.commandName ===
+  'forceqotd'
+) {
 
-      if (
-        interaction.user.id !==
-        OWNER_ID
-      ) {
+  // server owner OR bot owner
+  if (
+    interaction.user.id !== OWNER_ID &&
+    interaction.user.id !== interaction.guild.ownerId
+  ) {
 
-        return interaction.reply({
-          content:
-            "No permission.",
-          ephemeral: true
-        });
-      }
+    return interaction.reply({
+      content:
+        "No permission.",
+      ephemeral: true
+    });
+  }
 
-      const number =
-        interaction.options.getInteger(
-          'number'
-        );
+  // get server settings
+  const settings =
+    await getGuildSettings(
+      interaction.guild.id
+    );
 
-      const inputChannel =
-        await client.channels.fetch(
-          INPUT_CHANNEL_ID
-        );
+  // no setup yet
+  if (!settings) {
 
-      const messages =
-        await inputChannel.messages.fetch({
-          limit: 100
-        });
+    return interaction.reply({
+      content:
+        "This server has not been setup yet.",
+      ephemeral: true
+    });
+  }
 
-      const sorted =
-        [...messages.values()]
-          .sort((a, b) =>
-            a.createdTimestamp -
-            b.createdTimestamp
-          );
+  const number =
+    interaction.options.getInteger(
+      'number'
+    );
 
-      if (
-        number < 1 ||
-        number > sorted.length
-      ) {
+  const inputChannel =
+    await client.channels.fetch(
+      settings.input_channel_id
+    );
 
-        return interaction.reply({
-          content:
-            `Invalid queue number. There are ${sorted.length} QOTDs queued.`,
-          ephemeral: true
-        });
-      }
+  const messages =
+    await inputChannel.messages.fetch({
+      limit: 100
+    });
 
-      const targetMessage =
-        sorted[number - 1];
-
-      await postQOTD(
-        targetMessage.content
+  const sorted =
+    [...messages.values()]
+      .sort((a, b) =>
+        a.createdTimestamp -
+        b.createdTimestamp
       );
 
-      await targetMessage.delete()
-        .catch(() => {});
+  if (
+    number < 1 ||
+    number > sorted.length
+  ) {
 
-      return interaction.reply({
-        content:
-          `Forced QOTD #${number} to send.`,
-        ephemeral: true
-      });
-    }
+    return interaction.reply({
+      content:
+        `Invalid queue number. There are ${sorted.length} QOTDs queued.`,
+      ephemeral: true
+    });
+  }
 
+  const targetMessage =
+    sorted[number - 1];
+
+  await postQOTD(
+    targetMessage.content,
+    interaction.guild.id
+  );
+
+  await targetMessage.delete()
+    .catch(() => {});
+
+  return interaction.reply({
+    content:
+      `Forced QOTD #${number} to send.`,
+    ephemeral: true
+  });
+}
         // dice
 if (
   interaction.commandName ===
@@ -2325,6 +2547,56 @@ if (
   return interaction.reply({
     embeds: [embed],
     components: [buttons],
+    ephemeral: true
+  });
+}
+
+if (interaction.commandName === "setup") {
+
+  if (
+    interaction.user.id !== interaction.guild.ownerId &&
+    interaction.user.id !== OWNER_ID
+  ) {
+    return interaction.reply({
+      content: "Only server owner can use setup.",
+      ephemeral: true
+    });
+  }
+
+  const channels = interaction.guild.channels.cache
+    .filter(c => c.isTextBased && c.isTextBased())
+    .map(c => ({
+      label: c.name.slice(0, 100),
+      value: c.id
+    }))
+    .slice(0, 25);
+
+  const channelSelect = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("setup_input")
+      .setLabel("Set Input Channel")
+      .setStyle(ButtonStyle.Primary),
+
+    new ButtonBuilder()
+      .setCustomId("setup_output")
+      .setLabel("Set Output Channel")
+      .setStyle(ButtonStyle.Primary),
+
+    new ButtonBuilder()
+      .setCustomId("setup_review")
+      .setLabel("Set Review Channel")
+      .setStyle(ButtonStyle.Primary),
+
+    new ButtonBuilder()
+      .setCustomId("setup_role")
+      .setLabel("Set QOTD Role")
+      .setStyle(ButtonStyle.Primary)
+  );
+
+  return interaction.reply({
+    content:
+      "Click buttons then pick a channel/role in next step.",
+    components: [channelSelect],
     ephemeral: true
   });
 }
