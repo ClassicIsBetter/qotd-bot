@@ -2543,10 +2543,24 @@ if (
 
 if (interaction.commandName === "setup") {
 
-  if (
-    interaction.user.id !== interaction.guild.ownerId &&
-    interaction.user.id !== OWNER_ID
-  ) {
+ const guild = interaction.guild;
+
+if (!guild) {
+  return interaction.reply({
+    content: "This command only works in servers.",
+    ephemeral: true
+  });
+}
+
+if (
+  interaction.user.id !== guild.ownerId &&
+  interaction.user.id !== OWNER_ID
+) {
+  return interaction.reply({
+    content: "No permission.",
+    ephemeral: true
+  });
+}
     return interaction.reply({
       content: "Only server owner can use setup.",
       ephemeral: true
