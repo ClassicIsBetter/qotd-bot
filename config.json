@@ -1,0 +1,20 @@
+{
+  "ownerId": "1285513478315966506",
+
+  "snake": {
+    "speedMs": 1000,
+    "autoMove": false,
+
+    "emoji": {
+      "head": {
+        "up": "⬆️",
+        "down": "⬇️",
+        "left": "⬅️",
+        "right": "➡️"
+      },
+      "body": "🟩",
+      "apple": "🍎",
+      "empty": "⬛"
+    }
+  }
+}
