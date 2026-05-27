@@ -53,6 +53,10 @@ client.once('ready', () => {
   });
 });
 
+const snake = client.commands.get("snake");
+if (snake?.startAutoMove) {
+  snake.startAutoMove(client);
+}
 // =====================
 // INTERACTIONS
 // =====================
