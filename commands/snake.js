@@ -9,9 +9,7 @@ const config = require('../config/snakeConfig');
 
 const games = new Map();
 
-// ---------------------
-// SPAWN APPLE
-// ---------------------
+// spawn apple
 function spawnApple(snake) {
   while (true) {
     const pos = {
@@ -25,9 +23,7 @@ function spawnApple(snake) {
   }
 }
 
-// ---------------------
-// RENDER
-// ---------------------
+// render
 function render(game) {
   let out = "";
 
@@ -36,17 +32,13 @@ function render(game) {
 
     for (let x = 0; x < config.size; x++) {
 
-      const snakeIndex = game.snake.findIndex(
-        s => s.x === x && s.y === y
-      );
+      const index = game.snake.findIndex(s => s.x === x && s.y === y);
 
-      if (snakeIndex === 0) {
-
-        const head = game.direction;
-        row += config.emojis.head[head];
+      if (index === 0) {
+        row += config.emojis.head[game.direction];
       }
 
-      else if (snakeIndex > 0) {
+      else if (index > 0) {
         row += config.emojis.body;
       }
 
@@ -65,10 +57,25 @@ function render(game) {
   return out;
 }
 
-// ---------------------
-// MOVE LOGIC
-// ---------------------
+// GAME OVER CLEANUP
+function endGame(gameId, interaction) {
+  const game = games.get(gameId);
+  if (!game) return;
+
+  game.over = true;
+
+  games.delete(gameId);
+
+  interaction.editReply({
+    content: `💀 Game Over!\nScore: ${game.score}`,
+    components: []
+  }).catch(() => {});
+}
+
+// move logic
 function move(game, dir) {
+
+  if (game.over) return;
 
   game.direction = dir;
 
@@ -79,81 +86,91 @@ function move(game, dir) {
   if (dir === "left") head.x--;
   if (dir === "right") head.x++;
 
-  // wall collision (stop game)
+  // death
   if (
     head.x < 0 ||
     head.y < 0 ||
     head.x >= config.size ||
-    head.y >= config.size
+    head.y >= config.size ||
+    game.snake.some(s => s.x === head.x && s.y === head.y)
   ) {
     game.over = true;
     return;
   }
 
-  // check self collision
-  if (game.snake.some(s => s.x === head.x && s.y === head.y)) {
-    game.over = true;
-    return;
-  }
-
-  // add new head
   game.snake.unshift(head);
 
-  // apple eaten
   if (head.x === game.apple.x && head.y === game.apple.y) {
     game.apple = spawnApple(game.snake);
-    game.score += 1; // ONLY increase here
+    game.score++;
   } else {
-    game.snake.pop(); // remove tail if no food
+    game.snake.pop();
   }
 }
 
-// ---------------------
-// BUTTONS
-// ---------------------
+// buttons
 function buttons() {
   return [
     new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("snake_blank")
-        .setLabel("⬛")
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(true),
-
-      new ButtonBuilder()
-        .setCustomId("snake_up")
-        .setLabel("⬆️")
-        .setStyle(ButtonStyle.Primary)
+      new ButtonBuilder().setCustomId("snake_blank").setLabel("⬛").setStyle(ButtonStyle.Secondary).setDisabled(true),
+      new ButtonBuilder().setCustomId("snake_up").setLabel("⬆️").setStyle(ButtonStyle.Primary)
     ),
-
     new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("snake_left")
-        .setLabel("⬅️")
-        .setStyle(ButtonStyle.Primary),
-
-      new ButtonBuilder()
-        .setCustomId("snake_down")
-        .setLabel("⬇️")
-        .setStyle(ButtonStyle.Primary),
-
-      new ButtonBuilder()
-        .setCustomId("snake_right")
-        .setLabel("➡️")
-        .setStyle(ButtonStyle.Primary)
+      new ButtonBuilder().setCustomId("snake_left").setLabel("⬅️").setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId("snake_down").setLabel("⬇️").setStyle(ButtonStyle.Primary),
+      new ButtonBuilder().setCustomId("snake_right").setLabel("➡️").setStyle(ButtonStyle.Primary)
     )
   ];
 }
 
-// ---------------------
+// AUTO MOVE LOOP
+function startAutoMove(client) {
+
+  setInterval(async () => {
+
+    if (!config.autoMove.enabled) return;
+
+    for (const [msgId, game] of games.entries()) {
+
+      if (game.over) continue;
+
+      try {
+        const channel = await client.channels.fetch(game.channelId);
+        const msg = await channel.messages.fetch(msgId);
+
+        move(game, game.direction);
+
+        if (game.over) {
+          games.delete(msgId);
+          await msg.edit({
+            content: `💀 Game Over!\nScore: ${game.score}`,
+            components: []
+          });
+          continue;
+        }
+
+        await msg.edit({
+          content:
+`# Snake
+Score: ${game.score}
+
+${render(game)}`,
+          components: buttons()
+        });
+
+      } catch (e) {}
+    }
+
+  }, config.autoMove.speed);
+}
+
 // COMMAND
-// ---------------------
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('snake')
     .setDescription('Play snake'),
 
-  async execute(interaction) {
+  async execute(interaction, client) {
 
     const game = {
       snake: [{ x: 2, y: 2 }],
@@ -161,6 +178,7 @@ module.exports = {
       direction: "right",
       score: 0,
       userId: interaction.user.id,
+      channelId: interaction.channel.id,
       over: false
     };
 
@@ -180,5 +198,6 @@ ${render(game)}`,
   games,
   move,
   render,
-  buttons
+  buttons,
+  startAutoMove
 };
