@@ -1,5 +1,12 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { OWNER_IDS } = require('../config/admins');
+const { OWNER_IDS } = require("../config.json");
+
+if (interaction.user.id !== config.ownerId) {
+  return interaction.reply({
+    content: "No permission.",
+    ephemeral: true
+  });
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
