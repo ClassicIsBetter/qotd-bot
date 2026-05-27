@@ -45,7 +45,7 @@ client.once('ready', () => {
   client.user.setPresence({
     activities: [
       {
-        name: "clean modular bot",
+        name: "epic",
         type: 4
       }
     ],
