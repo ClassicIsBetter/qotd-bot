@@ -1,14 +1,12 @@
 {
   "name": "qotd-bot",
   "version": "1.0.0",
+  "description": "My Discord bot",
   "main": "index.js",
-  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
-    "discord.js": "^14.0.0",
-    "axios": "^1.7.2",
-    "sharp": "^0.33.0",
-    "quick.db": "^9.1.7",
-    "better-sqlite3": "^9.6.0",
-    "@supabase/supabase-js": "^2.49.8"
+    "discord.js": "^14.21.0"
   }
 }
