@@ -5,10 +5,13 @@ const {
   ButtonStyle
 } = require('discord.js');
 
+const config = require('../config/snakeConfig');
+
 const games = new Map();
 
 function render(game) {
-  const size = 6;
+  const size = config.size;
+
   let out = "";
 
   for (let y = 0; y < size; y++) {
@@ -17,11 +20,15 @@ function render(game) {
     for (let x = 0; x < size; x++) {
 
       if (x === game.x && y === game.y) {
-        row += "🟩";
-      } else if (x === game.apple.x && y === game.apple.y) {
-        row += "🍎";
-      } else {
-        row += "⬛";
+        row += config.emojis.body;
+      }
+
+      else if (x === game.apple.x && y === game.apple.y) {
+        row += config.emojis.apple;
+      }
+
+      else {
+        row += config.emojis.empty;
       }
     }
 
@@ -32,26 +39,16 @@ function render(game) {
 }
 
 function move(game, dir) {
+
   if (dir === "up") game.y--;
   if (dir === "down") game.y++;
   if (dir === "left") game.x--;
   if (dir === "right") game.x++;
 
-  // bounds
   if (game.x < 0) game.x = 0;
   if (game.y < 0) game.y = 0;
-  if (game.x > 5) game.x = 5;
-  if (game.y > 5) game.y = 5;
-
-  // apple
-  if (game.x === game.apple.x && game.y === game.apple.y) {
-    game.apple = {
-      x: Math.floor(Math.random() * 6),
-      y: Math.floor(Math.random() * 6)
-    };
-
-    game.score++;
-  }
+  if (game.x >= config.size) game.x = config.size - 1;
+  if (game.y >= config.size) game.y = config.size - 1;
 }
 
 function buttons() {
@@ -85,7 +82,7 @@ module.exports = {
     .setName('snake')
     .setDescription('Play snake'),
 
-  async execute(interaction, client) {
+  async execute(interaction) {
 
     const game = {
       x: 2,
@@ -99,7 +96,11 @@ module.exports = {
     };
 
     const msg = await interaction.reply({
-      content: `# Snake\nScore: 0\n\n${render(game)}`,
+      content:
+`# Snake
+Score: 0
+
+${render(game)}`,
       components: buttons(),
       fetchReply: true
     });
@@ -107,8 +108,8 @@ module.exports = {
     games.set(msg.id, game);
   },
 
-  // export for interaction handler
   games,
   move,
-  render
+  render,
+  buttons
 };
