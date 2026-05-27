@@ -1,13 +1,12 @@
-const fs = require("fs");
-const path = require("path");
-
+const fs = require('fs');
+const path = require('path');
 const {
   Client,
-  Collection,
   GatewayIntentBits,
-  REST,
-  Routes
-} = require("discord.js");
+  Collection
+} = require('discord.js');
+
+const TOKEN = process.env.TOKEN;
 
 // =====================
 // CLIENT
@@ -19,185 +18,120 @@ const client = new Client({
 });
 
 // =====================
-// COMMAND COLLECTION
+// COMMAND HANDLER
 // =====================
-client.commands =
-  new Collection();
+client.commands = new Collection();
 
-// =====================
-// LOAD COMMANDS
-// =====================
-const commandsPath =
-  path.join(
-    __dirname,
-    "commands"
-  );
-
-const commandFiles =
-  fs.readdirSync(commandsPath)
-    .filter(file =>
-      file.endsWith(".js")
-    );
-
-const commands = [];
+// load commands
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
 
 for (const file of commandFiles) {
+  const filePath = path.join(commandsPath, file);
+  const command = require(filePath);
 
-  const filePath =
-    path.join(
-      commandsPath,
-      file
-    );
+  if (!command.data || !command.execute) continue;
 
-  const command =
-    require(filePath);
-
-  client.commands.set(
-    command.data.name,
-    command
-  );
-
-  commands.push(
-    command.data.toJSON()
-  );
-
-  console.log(
-    `Loaded command: ${command.data.name}`
-  );
+  client.commands.set(command.data.name, command);
+  console.log(`Loaded command: ${command.data.name}`);
 }
 
 // =====================
-// REGISTER COMMANDS
+// READY
 // =====================
-const rest =
-  new REST({
-    version: "10"
-  }).setToken(
-    process.env.TOKEN
-  );
+client.once('ready', () => {
+  console.log(`Logged in as ${client.user.tag}`);
 
-(async () => {
-
-  try {
-
-    console.log(
-      "Refreshing slash commands..."
-    );
-
-    // wipe OLD GLOBAL commands
-    await rest.put(
-      Routes.applicationCommands(
-        process.env.CLIENT_ID
-      ),
+  client.user.setPresence({
+    activities: [
       {
-        body: []
+        name: "clean modular bot",
+        type: 4
       }
-    );
-
-    console.log(
-      "Old global commands removed."
-    );
-
-    // register NEW guild commands
-    await rest.put(
-      Routes.applicationGuildCommands(
-        process.env.CLIENT_ID,
-        process.env.GUILD_ID
-      ),
-      {
-        body: commands
-      }
-    );
-
-    console.log(
-      "Guild commands registered."
-    );
-
-  } catch (err) {
-
-    console.error(err);
-  }
-})();
+    ],
+    status: "online"
+  });
+});
 
 // =====================
 // INTERACTIONS
 // =====================
-client.on(
-  "interactionCreate",
-  async interaction => {
+client.on('interactionCreate', async (interaction) => {
 
-    if (
-      !interaction.isChatInputCommand()
-    ) return;
+  // =====================
+  // SLASH COMMANDS
+  // =====================
+  if (interaction.isChatInputCommand()) {
 
-    const command =
-      client.commands.get(
-        interaction.commandName
-      );
+    const command = client.commands.get(interaction.commandName);
 
     if (!command) return;
 
     try {
-
-      await command.execute(
-        interaction,
-        client
-      );
-
+      await command.execute(interaction, client);
     } catch (err) {
-
       console.error(err);
 
-      if (
-        interaction.replied ||
-        interaction.deferred
-      ) {
-
+      if (interaction.replied || interaction.deferred) {
         await interaction.followUp({
-          content:
-            "❌ Command crashed.",
+          content: "❌ Error executing command",
           ephemeral: true
         });
-
       } else {
-
         await interaction.reply({
-          content:
-            "❌ Command crashed.",
+          content: "❌ Error executing command",
           ephemeral: true
         });
       }
     }
   }
-);
 
-// =====================
-// READY
-// =====================
-client.once(
-  "clientReady",
-  () => {
+  // =====================
+  // BUTTONS (SNAKE SYSTEM)
+  // =====================
+  if (interaction.isButton()) {
 
-    console.log(
-      `Logged in as ${client.user.tag}`
-    );
+    if (!interaction.customId.startsWith("snake_")) return;
 
-    client.user.setPresence({
-      activities: [
-        {
-          name:
-            "very cool test, wow",
-          type: 4
-        }
-      ],
-      status: "online"
+    const snakeCommand = client.commands.get("snake");
+    if (!snakeCommand) return;
+
+    const game = snakeCommand.games?.get(interaction.message.id);
+
+    if (!game) {
+      return interaction.reply({
+        content: "Game expired.",
+        ephemeral: true
+      });
+    }
+
+    if (interaction.user.id !== game.userId) {
+      return interaction.reply({
+        content: "This is not your game.",
+        ephemeral: true
+      });
+    }
+
+    const dir = interaction.customId.replace("snake_", "");
+
+    snakeCommand.move(game, dir);
+
+    if (game.x === game.apple.x && game.y === game.apple.y) {
+      game.score++;
+    }
+
+    await interaction.update({
+      content:
+`# Snake
+Score: ${game.score}
+
+${snakeCommand.render(game)}`,
+      components: snakeCommand.buttons?.() || []
     });
   }
-);
+});
 
 // =====================
 // LOGIN
 // =====================
-client.login(
-  process.env.TOKEN
-);
+client.login(TOKEN);
