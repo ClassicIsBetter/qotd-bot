@@ -4,7 +4,9 @@ const path = require("path");
 const {
   Client,
   Collection,
-  GatewayIntentBits
+  GatewayIntentBits,
+  REST,
+  Routes
 } = require("discord.js");
 
 // =====================
@@ -12,21 +14,24 @@ const {
 // =====================
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages
+    GatewayIntentBits.Guilds
   ]
 });
 
 // =====================
 // COMMAND COLLECTION
 // =====================
-client.commands = new Collection();
+client.commands =
+  new Collection();
 
 // =====================
 // LOAD COMMANDS
 // =====================
 const commandsPath =
-  path.join(__dirname, "commands");
+  path.join(
+    __dirname,
+    "commands"
+  );
 
 const commandFiles =
   fs.readdirSync(commandsPath)
@@ -34,10 +39,15 @@ const commandFiles =
       file.endsWith(".js")
     );
 
+const commands = [];
+
 for (const file of commandFiles) {
 
   const filePath =
-    path.join(commandsPath, file);
+    path.join(
+      commandsPath,
+      file
+    );
 
   const command =
     require(filePath);
@@ -47,27 +57,24 @@ for (const file of commandFiles) {
     command
   );
 
+  commands.push(
+    command.data.toJSON()
+  );
+
   console.log(
     `Loaded command: ${command.data.name}`
   );
 }
 
-const {
-  REST,
-  Routes
-} = require("discord.js");
-
-const commands = [];
-
-for (const command of client.commands.values()) {
-  commands.push(
-    command.data.toJSON()
+// =====================
+// REGISTER COMMANDS
+// =====================
+const rest =
+  new REST({
+    version: "10"
+  }).setToken(
+    process.env.TOKEN
   );
-}
-
-const rest = new REST({
-  version: "10"
-}).setToken(process.env.TOKEN);
 
 (async () => {
 
@@ -77,6 +84,21 @@ const rest = new REST({
       "Refreshing slash commands..."
     );
 
+    // wipe OLD GLOBAL commands
+    await rest.put(
+      Routes.applicationCommands(
+        process.env.CLIENT_ID
+      ),
+      {
+        body: []
+      }
+    );
+
+    console.log(
+      "Old global commands removed."
+    );
+
+    // register NEW guild commands
     await rest.put(
       Routes.applicationGuildCommands(
         process.env.CLIENT_ID,
@@ -88,7 +110,7 @@ const rest = new REST({
     );
 
     console.log(
-      "Slash commands refreshed."
+      "Guild commands registered."
     );
 
   } catch (err) {
@@ -98,7 +120,7 @@ const rest = new REST({
 })();
 
 // =====================
-// EVENTS
+// INTERACTIONS
 // =====================
 client.on(
   "interactionCreate",
@@ -152,24 +174,30 @@ client.on(
 // =====================
 // READY
 // =====================
-client.once("ready", () => {
+client.once(
+  "clientReady",
+  () => {
 
-  console.log(
-    `Logged in as ${client.user.tag}`
-  );
+    console.log(
+      `Logged in as ${client.user.tag}`
+    );
 
-  client.user.setPresence({
-    activities: [
-      {
-        name: "very cool test, wow",
-        type: 4
-      }
-    ],
-    status: "online"
-  });
-});
+    client.user.setPresence({
+      activities: [
+        {
+          name:
+            "very cool test, wow",
+          type: 4
+        }
+      ],
+      status: "online"
+    });
+  }
+);
 
 // =====================
 // LOGIN
 // =====================
-client.login(process.env.TOKEN);
+client.login(
+  process.env.TOKEN
+);
