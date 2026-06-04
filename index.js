@@ -757,11 +757,9 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
     console.log("Registering commands...");
 
     await rest.put(
-      Routes.applicationGuildCommands(
-        CLIENT_ID
-      ),
-      { body: commands }
-    );
+  Routes.applicationCommands(CLIENT_ID),
+  { body: commands }
+);
 
     console.log("Commands ready.");
 
