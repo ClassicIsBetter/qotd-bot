@@ -758,8 +758,7 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
 
     await rest.put(
       Routes.applicationGuildCommands(
-        CLIENT_ID,
-        GUILD_ID
+        CLIENT_ID
       ),
       { body: commands }
     );
