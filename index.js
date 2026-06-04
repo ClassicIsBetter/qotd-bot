@@ -27,7 +27,7 @@ const REVIEW_CHANNEL_ID = process.env.REVIEW_CHANNEL_ID;
 // =====================
 // OWNER
 // =====================
-const OWNER_ID = "1285513478315966506";
+const OWNER_ID = process.env.OWNER_ID;
 
 // =====================
 // ROLE PING
