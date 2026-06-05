@@ -1312,7 +1312,7 @@ if (interaction.isButton()) {
     game.direction =
       direction;
 
-    moveSnake(game);
+    //moveSnake(game);
 
     // game over
     if (game.over) {
