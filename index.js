@@ -1312,7 +1312,7 @@ if (interaction.isButton()) {
     game.direction =
       direction;
 
-    //moveSnake(game);
+    moveSnake(game);
 
     // game over
     if (game.over) {
@@ -1655,37 +1655,6 @@ ${renderSnake(game)}`,
         msg.id,
         game
       );
-
-      game.interval = setInterval(async () => {
-
-  moveSnake(game);
-
-  if (game.over) {
-
-    clearInterval(game.interval);
-
-    return msg.edit({
-      content:
-`# Game Over
-
-Score: ${game.snake.length - 1}
-
-${renderSnake(game)}`,
-      components: []
-    });
-  }
-
-  await msg.edit({
-    content:
-`# Snake
-
-Score: ${game.snake.length - 1}
-
-${renderSnake(game)}`,
-    components: snakeButtons()
-  });
-
-}, 1000); // moves every second
     }
 
     // qotdqueue
